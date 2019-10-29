@@ -91,6 +91,11 @@ $application->registerRoutes(
 				'url' => '/api/v1/quickaccess/get/NodeType',
 				'verb' => 'GET',
 			],
+			[
+				'name' => 'TransferOwnership#transfer',
+				'url' => '/api/v1/transferownership',
+				'verb' => 'POST',
+			],
 		]
 	]
 );
