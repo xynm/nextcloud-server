@@ -32,6 +32,7 @@ use OCA\Files\Collaboration\Resources\ResourceProvider;
 use OCA\Files\Controller\ApiController;
 use OCA\Files\Event\LoadAdditionalScriptsEvent;
 use OCA\Files\Listener\LegacyLoadAdditionalScriptsAdapter;
+use OCA\Files\Notification\Notifier;
 use OCP\AppFramework\App;
 use \OCA\Files\Service\TagService;
 use OCP\Collaboration\Resources\IManager;
@@ -92,5 +93,9 @@ class Application extends App {
 		/** @var IEventDispatcher $dispatcher */
 		$dispatcher = $container->query(IEventDispatcher::class);
 		$dispatcher->addServiceListener(LoadAdditionalScriptsEvent::class, LegacyLoadAdditionalScriptsAdapter::class);
+
+		/** @var \OCP\Notification\IManager $notifications */
+		$notifications = $container->query(\OCP\Notification\IManager::class);
+		$notifications->registerNotifierService(Notifier::class);
 	}
 }
