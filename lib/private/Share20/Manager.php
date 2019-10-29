@@ -1674,8 +1674,6 @@ class Manager implements IManager {
 	 * @return bool
 	 */
 	public function shareApiInternalDefaultExpireDate(): bool {
-		//FIXME: mage configurable
-		return true;
 		return $this->config->getAppValue('core', 'shareapi_default_internal_expire_date', 'no') === 'yes';
 	}
 
@@ -1685,9 +1683,7 @@ class Manager implements IManager {
 	 * @return bool
 	 */
 	public function shareApiInternalDefaultExpireDateEnforced(): bool {
-		//FIXME: mage configurable
-		return true;
-		return $this->shareApiLinkDefaultExpireDate() &&
+		return $this->shareApiInternalDefaultExpireDate() &&
 			$this->config->getAppValue('core', 'shareapi_enforce_internal_expire_date', 'no') === 'yes';
 	}
 
@@ -1697,9 +1693,6 @@ class Manager implements IManager {
 	 * @return int
 	 */
 	public function shareApiInternalDefaultExpireDays(): int {
-
-		//FIXME: mage configurable
-		return 6;
 		return (int)$this->config->getAppValue('core', 'shareapi_internal_expire_after_n_days', '7');
 	}
 
