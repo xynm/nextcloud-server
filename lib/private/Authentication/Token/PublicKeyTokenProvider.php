@@ -110,7 +110,7 @@ class PublicKeyTokenProvider implements IProvider {
 		}
 
 		if ($token->getPasswordInvalid() === true) {
-			//The password is invalid we should throw an ExpireTokenException
+			//The password is invalid we should throw an TokenPasswordExpiredException
 			throw new TokenPasswordExpiredException($token);
 		}
 
@@ -133,7 +133,7 @@ class PublicKeyTokenProvider implements IProvider {
 		}
 
 		if ($token->getPasswordInvalid() === true) {
-			//The password is invalid we should throw an ExpireTokenException
+			//The password is invalid we should throw an TokenPasswordExpiredException
 			throw new TokenPasswordExpiredException($token);
 		}
 
