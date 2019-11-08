@@ -40,6 +40,26 @@
 	</div>
 
 	<!-- User full data -->
+	<UserRowSimple
+		v-else-if="!editing"
+		:generate-avatar="generateAvatar"
+		:loading="loading"
+		:show-config="showConfig"
+		:user="user"
+		:user-groups="userGroups"
+		:user-sub-admins-groups="userSubAdminsGroups"
+		:used-quota="usedQuota"
+		:user-language="userLanguage"
+		:user-backend="userBackend"
+		:user-last-login="userLastLogin"
+		:user-actions="userActions"
+		:opened-menu="openedMenu"
+		:feedback-message="feedbackMessage"
+		:sub-admins-groups="subAdminsGroups"
+		:settings="settings"
+		@hideMenu="hideMenu"
+		@toggleMenu="toggleMenu"
+		@edit="editing = true" />
 	<div v-else
 		class="row"
 		:class="{'disabled': loading.delete || loading.disable}"
@@ -56,7 +76,7 @@
 		<div class="name">
 			{{ user.id }}
 			<div class="displayName">
-				<form v-if="false"
+				<form
 					class="displayName"
 					:class="{'icon-loading-small': loading.displayName}"
 					@submit.prevent="updateDisplayName">
@@ -78,7 +98,6 @@
 					</template>
 					<div v-else v-tooltip.auto="t('settings', 'The backend does not support changing the display name')" class="name" />
 				</form>
-				{{ user.displayname }}
 			</div>
 		</div>
 		<form v-if="settings.canChangePassword && user.backendCapabilities.setPassword"
@@ -195,6 +214,11 @@
 		</div>
 		<div class="userActions">
 			<div v-if="OC.currentUser !== user.id && user.id !== 'admin' && !loading.all" class="toggleUserActions">
+				<Actions>
+					<ActionButton icon="icon-checkmark" @click="editing = false">
+						{{ t('settings', 'Save User') }}
+					</ActionButton>
+				</Actions>
 				<div v-click-outside="hideMenu" class="icon-more" @click="toggleMenu" />
 				<div class="popovermenu" :class="{ 'open': openedMenu }">
 					<PopoverMenu :menu="userActions" />
@@ -212,14 +236,18 @@
 import ClickOutside from 'vue-click-outside'
 import Vue from 'vue'
 import VTooltip from 'v-tooltip'
-import { PopoverMenu, Multiselect } from 'nextcloud-vue'
+import { PopoverMenu, Multiselect, Actions, ActionButton } from 'nextcloud-vue'
+import UserRowSimple from './UserRowSimple'
 
 Vue.use(VTooltip)
 
 export default {
 	name: 'UserRow',
 	components: {
+		UserRowSimple,
 		PopoverMenu,
+		Actions,
+		ActionButton,
 		Multiselect
 	},
 	directives: {
@@ -264,6 +292,7 @@ export default {
 			rand: parseInt(Math.random() * 1000),
 			openedMenu: false,
 			feedbackMessage: '',
+			editing: false,
 			loading: {
 				all: false,
 				displayName: false,
