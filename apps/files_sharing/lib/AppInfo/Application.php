@@ -29,7 +29,6 @@
 
 namespace OCA\Files_Sharing\AppInfo;
 
-use \OCP\IContainer;
 use OC\AppFramework\Utility\SimpleContainer;
 use OCA\Files_Sharing\Capabilities;
 use OCA\Files_Sharing\Controller\ExternalSharesController;
@@ -51,8 +50,10 @@ use OCP\Defaults;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Federation\ICloudIdManager;
 use OCP\Files\Config\IMountProviderCollection;
+use OCP\IContainer;
 use OCP\IGroup;
 use OCP\IServerContainer;
+use OCP\Util;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
 class Application extends App {
@@ -189,6 +190,11 @@ class Application extends App {
 		$this->registerMountProviders($mountProviderCollection);
 		$this->registerEventsScripts($dispatcher);
 		$this->setupSharingMenus();
+
+		/**
+		 * Always add main sharing script
+		 */
+		Util::addScript(self::APP_ID, 'dist/main');
 	}
 
 	protected function registerMountProviders(IMountProviderCollection $mountProviderCollection) {
