@@ -128,7 +128,11 @@ class LoginController extends Controller {
 
 		$this->session->set('clearingExecutionContexts', '1');
 		$this->session->close();
-		$response->addHeader('Clear-Site-Data', '"cache", "storage"');
+
+		if (!$this->request->isUserAgent(['#Chrome/#'])) {
+			$response->addHeader('Clear-Site-Data', '"cache", "storage"');
+		}
+
 		return $response;
 	}
 
