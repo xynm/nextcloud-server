@@ -1,4 +1,717 @@
-!function(e){var t={};function a(r){if(t[r])return t[r].exports;var n=t[r]={i:r,l:!1,exports:{}};return e[r].call(n.exports,n,n.exports,a),n.l=!0,n.exports}a.m=e,a.c=t,a.d=function(e,t,r){a.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:r})},a.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},a.t=function(e,t){if(1&t&&(e=a(e)),8&t)return e;if(4&t&&"object"==typeof e&&e&&e.__esModule)return e;var r=Object.create(null);if(a.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:e}),2&t&&"string"!=typeof e)for(var n in e)a.d(r,n,function(t){return e[t]}.bind(null,n));return r},a.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e};return a.d(t,"a",t),t},a.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},a.p="/js/",a(a.s=174)}({174:function(e,t,a){"use strict";a.r(t);a(175),a(176),a(177),a(65);a.p=OC.linkTo("files_sharing","js/dist/"),a.nc=btoa(OC.requestToken),window.OCA.Sharing=OCA.Sharing},175:function(e,a){_.extend(OC.Files.Client,{PROPERTY_SHARE_TYPES:"{"+OC.Files.Client.NS_OWNCLOUD+"}share-types",PROPERTY_OWNER_ID:"{"+OC.Files.Client.NS_OWNCLOUD+"}owner-id",PROPERTY_OWNER_DISPLAY_NAME:"{"+OC.Files.Client.NS_OWNCLOUD+"}owner-display-name"}),OCA.Sharing||(OCA.Sharing={}),OC.Share=_.extend(OC.Share||{},{SHARE_TYPE_USER:0,SHARE_TYPE_GROUP:1,SHARE_TYPE_LINK:3,SHARE_TYPE_EMAIL:4,SHARE_TYPE_REMOTE:6,SHARE_TYPE_CIRCLE:7,SHARE_TYPE_GUEST:8,SHARE_TYPE_REMOTE_GROUP:9,SHARE_TYPE_ROOM:10}),OCA.Sharing.Util={_REMOTE_OWNER_REGEXP:new RegExp("^([^@]*)@(([^@]*)@)?([^/]*)([/](.*)?)?$"),attach:function(e){if(OC.Share&&"trashbin"!==e.id&&"files.public"!==e.id){var a=e.fileActions,r=e._createRow;e._createRow=function(e){var t=r.apply(this,arguments),n=OCA.Sharing.Util.getSharePermissions(e);return 0===e.permissions&&(delete a.actions.all.Comment,delete a.actions.all.Details,delete a.actions.all.Goto),t.attr("data-share-permissions",n),e.shareOwner&&(t.attr("data-share-owner",e.shareOwner),t.attr("data-share-owner-id",e.shareOwnerId),"shared-root"===e.mountType&&t.attr("data-permissions",e.permissions|OC.PERMISSION_UPDATE)),e.recipientData&&!_.isEmpty(e.recipientData)&&t.attr("data-share-recipient-data",JSON.stringify(e.recipientData)),e.shareTypes&&t.attr("data-share-types",e.shareTypes.join(",")),t};var n=e.elementToFile;e.elementToFile=function(e){var t=n.apply(this,arguments);if(t.sharePermissions=e.attr("data-share-permissions")||void 0,t.shareOwner=e.attr("data-share-owner")||void 0,t.shareOwnerId=e.attr("data-share-owner-id")||void 0,e.attr("data-share-types")&&(t.shareTypes=e.attr("data-share-types").split(",")),e.attr("data-expiration")){var a=parseInt(e.attr("data-expiration"));t.shares=[],t.shares.push({expiration:a})}return t};var i=e._getWebdavProperties;e._getWebdavProperties=function(){var e=i.apply(this,arguments);return e.push(OC.Files.Client.PROPERTY_OWNER_ID),e.push(OC.Files.Client.PROPERTY_OWNER_DISPLAY_NAME),e.push(OC.Files.Client.PROPERTY_SHARE_TYPES),e},e.filesClient.addFileInfoParser((function(e){var t={},a=e.propStat[0].properties,r=a[OC.Files.Client.PROPERTY_PERMISSIONS];r&&r.indexOf("S")>=0&&(t.shareOwner=a[OC.Files.Client.PROPERTY_OWNER_DISPLAY_NAME],t.shareOwnerId=a[OC.Files.Client.PROPERTY_OWNER_ID]);var n=a[OC.Files.Client.PROPERTY_SHARE_TYPES];return n&&(t.shareTypes=_.chain(n).filter((function(e){return e.namespaceURI===OC.Files.Client.NS_OWNCLOUD&&"share-type"===e.nodeName.split(":")[1]})).map((function(e){return parseInt(e.textContent||e.text,10)})).value()),t})),e.$el.on("fileActionsReady",(function(e){var t=e.$files;_.each(t,(function(e){var t=$(e),a=t.attr("data-share-types")||"",r=t.attr("data-share-owner");if(a||r){var n=!1,i=!1;_.each(a.split(",")||[],(function(e){(e=parseInt(e,10))===OC.Share.SHARE_TYPE_LINK?n=!0:e===OC.Share.SHARE_TYPE_EMAIL?n=!0:e===OC.Share.SHARE_TYPE_USER?i=!0:e===OC.Share.SHARE_TYPE_GROUP?i=!0:e===OC.Share.SHARE_TYPE_REMOTE?i=!0:e===OC.Share.SHARE_TYPE_CIRCLE?i=!0:e===OC.Share.SHARE_TYPE_ROOM&&(i=!0)})),OCA.Sharing.Util._updateFileActionIcon(t,i,n)}}))})),e.$el.on("changeDirectory",(function(){OCA.Sharing.sharesLoaded=!1})),a.registerAction({name:"Share",displayName:function(e){if(e&&e.$file){var a=parseInt(e.$file.data("share-types"),10),r=e.$file.data("share-owner-id");if(a>=0||r)return t("core","Shared")}return t("core","Share")},altText:t("core","Share"),mime:"all",order:-150,permissions:OC.PERMISSION_ALL,iconClass:function(e,t){var a=parseInt(t.$file.data("share-types"),10);return a===OC.Share.SHARE_TYPE_EMAIL||a===OC.Share.SHARE_TYPE_LINK?"icon-public":"icon-shared"},icon:function(e,t){var a=t.$file.data("share-owner-id");if(a)return OC.generateUrl("/avatar/".concat(a,"/32"))},type:OCA.Files.FileActions.TYPE_INLINE,actionHandler:function(t,a){var r=parseInt(a.$file.data("share-permissions"),10);(isNaN(r)||r>0)&&e.showDetailsView(t,"sharing")},render:function(e,t,r){return 0!=(parseInt(r.$file.data("permissions"),10)&OC.PERMISSION_SHARE)||r.$file.attr("data-share-owner")?a._defaultRenderAction.call(a,e,t,r):null}});var s=new OCA.Sharing.ShareBreadCrumbView;e.registerBreadCrumbDetailView(s)}},_updateFileListDataAttributes:function(e,t,a){if("files"!==e.id)if(_.pluck(a.get("shares"),"share_with_displayname").length){var r=_.mapObject(a.get("shares"),(function(e){return{shareWith:e.share_with,shareWithDisplayName:e.share_with_displayname}}));t.attr("data-share-recipient-data",JSON.stringify(r))}else t.removeAttr("data-share-recipient-data")},_updateFileActionIcon:function(e,t,a){return console.info("object"),!!(t||a||e.attr("data-share-recipient-data")||e.attr("data-share-owner"))&&(OCA.Sharing.Util._markFileAsShared(e,!0,a),!0)},_markFileAsShared:function(e,a,r){var n,i,s,o,l=e.find('.fileactions .action[data-action="Share"]'),d=e.data("type"),c=l.find(".icon"),h=e.attr("data-share-owner-id"),u=e.attr("data-share-owner"),p=e.attr("data-mounttype"),f="icon-shared";l.removeClass("shared-style"),"dir"===d&&(a||r||h)?(o=void 0!==p&&"shared-root"!==p&&"shared"!==p?OC.MimeType.getIconUrl("dir-"+p):r?OC.MimeType.getIconUrl("dir-public"):OC.MimeType.getIconUrl("dir-shared"),e.find(".filename .thumbnail").css("background-image","url("+o+")"),e.attr("data-icon",o)):"dir"===d&&("true"===e.attr("data-e2eencrypted")?(o=OC.MimeType.getIconUrl("dir-encrypted"),e.attr("data-icon",o)):p&&0===p.indexOf("external")?(o=OC.MimeType.getIconUrl("dir-external"),e.attr("data-icon",o)):(o=OC.MimeType.getIconUrl("dir"),e.removeAttr("data-icon")),e.find(".filename .thumbnail").css("background-image","url("+o+")")),a||h?(i=e.data("share-recipient-data"),l.addClass("shared-style"),s="<span>"+t("core","Shared")+"</span>",h?(n=t("core","Shared by"),s=OCA.Sharing.Util._formatRemoteShare(h,u,n)):i&&(s=OCA.Sharing.Util._formatShareList(i)),l.html(s).prepend(c),(h||i)&&(l.find(".avatar").each((function(){$(this).avatar($(this).data("username"),32)})),l.find("span[title]").tooltip({placement:"top"}))):l.html('<span class="hidden-visually">'+t("core","Shared")+"</span>").prepend(c),r&&(f="icon-public"),c.removeClass("icon-shared icon-public").addClass(f)},_formatRemoteShare:function(e,t,a){var r=OCA.Sharing.Util._REMOTE_OWNER_REGEXP.exec(e);if(!r)return'<span class="avatar" data-username="'+escapeHTML(e)+'" title="'+a+" "+escapeHTML(t)+'"></span><span class="hidden-visually">'+a+" "+escapeHTML(t)+"</span> ";var n=r[1],i=r[3],s=r[4],o=a+" "+n;i&&(o+="@"+i),s&&(i||(i="…"),o+="@"+s);var l='<span class="remoteAddress" title="'+escapeHTML(o)+'">';return l+='<span class="username">'+escapeHTML(n)+"</span>",i&&(l+='<span class="userDomain">@'+escapeHTML(i)+"</span>"),l+="</span> "},_formatShareList:function(e){var a=this;return(e=_.toArray(e)).sort((function(e,t){return e.shareWithDisplayName.localeCompare(t.shareWithDisplayName)})),$.map(e,(function(e){return a._formatRemoteShare(e.shareWith,e.shareWithDisplayName,t("core","Shared with"))}))},markFileAsShared:function(e,a,r){var n,i,s,o,l=e.find('.fileactions .action[data-action="Share"]'),d=e.data("type"),c=l.find(".icon"),h=e.attr("data-share-owner-id"),u=e.attr("data-share-owner"),p=e.attr("data-mounttype"),f="icon-shared";l.removeClass("shared-style"),"dir"===d&&(a||r||h)?(o=void 0!==p&&"shared-root"!==p&&"shared"!==p?OC.MimeType.getIconUrl("dir-"+p):r?OC.MimeType.getIconUrl("dir-public"):OC.MimeType.getIconUrl("dir-shared"),e.find(".filename .thumbnail").css("background-image","url("+o+")"),e.attr("data-icon",o)):"dir"===d&&("true"===e.attr("data-e2eencrypted")?(o=OC.MimeType.getIconUrl("dir-encrypted"),e.attr("data-icon",o)):p&&0===p.indexOf("external")?(o=OC.MimeType.getIconUrl("dir-external"),e.attr("data-icon",o)):(o=OC.MimeType.getIconUrl("dir"),e.removeAttr("data-icon")),e.find(".filename .thumbnail").css("background-image","url("+o+")")),a||h?(i=e.data("share-recipient-data"),l.addClass("shared-style"),s="<span>"+t("core","Shared")+"</span>",h?(n=t("core","Shared by"),s=this._formatRemoteShare(h,u,n)):i&&(s=this._formatShareList(i)),l.html(s).prepend(c),(h||i)&&(l.find(".avatar").each((function(){$(this).avatar($(this).data("username"),32)})),l.find("span[title]").tooltip({placement:"top"}))):l.html('<span class="hidden-visually">'+t("core","Shared")+"</span>").prepend(c),r&&(f="icon-public"),c.removeClass("icon-shared icon-public").addClass(f)},getSharePermissions:function(e){return e.sharePermissions}},OC.Plugins.register("OCA.Files.FileList",OCA.Sharing.Util)},176:function(e,t){
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = function(exports) {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__webpack_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = __webpack_require__(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 		var ns = Object.create(null);
+/******/ 		__webpack_require__.r(ns);
+/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 		return ns;
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "/js/";
+/******/
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = "./apps/files_sharing/src/additionalScripts.js");
+/******/ })
+/************************************************************************/
+/******/ ({
+
+/***/ "./apps/files_sharing/src/additionalScripts.js":
+/*!*****************************************************!*\
+  !*** ./apps/files_sharing/src/additionalScripts.js ***!
+  \*****************************************************/
+/*! no exports provided */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _share__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./share */ "./apps/files_sharing/src/share.js");
+/* harmony import */ var _share__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_share__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _sharebreadcrumbview__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./sharebreadcrumbview */ "./apps/files_sharing/src/sharebreadcrumbview.js");
+/* harmony import */ var _sharebreadcrumbview__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_sharebreadcrumbview__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _style_sharebreadcrumb_scss__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./style/sharebreadcrumb.scss */ "./apps/files_sharing/src/style/sharebreadcrumb.scss");
+/* harmony import */ var _style_sharebreadcrumb_scss__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_style_sharebreadcrumb_scss__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _collaborationresourceshandler_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./collaborationresourceshandler.js */ "./apps/files_sharing/src/collaborationresourceshandler.js");
+/* harmony import */ var _collaborationresourceshandler_js__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_collaborationresourceshandler_js__WEBPACK_IMPORTED_MODULE_3__);
+
+
+
+ // eslint-disable-next-line camelcase
+
+__webpack_require__.p = OC.linkTo('files_sharing', 'js/dist/'); // eslint-disable-next-line camelcase
+
+__webpack_require__.nc = btoa(OC.requestToken);
+window.OCA.Sharing = OCA.Sharing;
+
+/***/ }),
+
+/***/ "./apps/files_sharing/src/collaborationresourceshandler.js":
+/*!*****************************************************************!*\
+  !*** ./apps/files_sharing/src/collaborationresourceshandler.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+// eslint-disable-next-line camelcase
+__webpack_require__.p = OC.linkTo('files_sharing', 'js/dist/'); // eslint-disable-next-line camelcase
+
+__webpack_require__.nc = btoa(OC.requestToken);
+window.OCP.Collaboration.registerType('file', {
+  action: function action() {
+    return new Promise(function (resolve, reject) {
+      OC.dialogs.filepicker(t('files_sharing', 'Link to a file'), function (f) {
+        var client = OC.Files.getClient();
+        client.getFileInfo(f).then(function (status, fileInfo) {
+          resolve(fileInfo.id);
+        }).fail(function () {
+          reject(new Error('Cannot get fileinfo'));
+        });
+      }, false, null, false, OC.dialogs.FILEPICKER_TYPE_CHOOSE, '', {
+        allowDirectoryChooser: true
+      });
+    });
+  },
+  typeString: t('files_sharing', 'Link to a file'),
+  typeIconClass: 'icon-files-dark'
+});
+
+/***/ }),
+
+/***/ "./apps/files_sharing/src/share.js":
+/*!*****************************************!*\
+  !*** ./apps/files_sharing/src/share.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+/* eslint-disable */
+
+/*
+ * Copyright (c) 2014
+ *
+ * This file is licensed under the Affero General Public License version 3
+ * or later.
+ *
+ * See the COPYING-README file.
+ *
+ */
+(function () {
+  _.extend(OC.Files.Client, {
+    PROPERTY_SHARE_TYPES: '{' + OC.Files.Client.NS_OWNCLOUD + '}share-types',
+    PROPERTY_OWNER_ID: '{' + OC.Files.Client.NS_OWNCLOUD + '}owner-id',
+    PROPERTY_OWNER_DISPLAY_NAME: '{' + OC.Files.Client.NS_OWNCLOUD + '}owner-display-name'
+  });
+
+  if (!OCA.Sharing) {
+    OCA.Sharing = {};
+  }
+
+  OC.Share = _.extend(OC.Share || {}, {
+    SHARE_TYPE_USER: 0,
+    SHARE_TYPE_GROUP: 1,
+    SHARE_TYPE_LINK: 3,
+    SHARE_TYPE_EMAIL: 4,
+    SHARE_TYPE_REMOTE: 6,
+    SHARE_TYPE_CIRCLE: 7,
+    SHARE_TYPE_GUEST: 8,
+    SHARE_TYPE_REMOTE_GROUP: 9,
+    SHARE_TYPE_ROOM: 10
+  });
+  /**
+   * @namespace
+   */
+
+  OCA.Sharing.Util = {
+    /**	
+     * Regular expression for splitting parts of remote share owners:	
+     * "user@example.com/path/to/owncloud"	
+     * "user@anotherexample.com@example.com/path/to/owncloud	
+     */
+    _REMOTE_OWNER_REGEXP: new RegExp('^([^@]*)@(([^@]*)@)?([^/]*)([/](.*)?)?$'),
+
+    /**
+     * Initialize the sharing plugin.
+     *
+     * Registers the "Share" file action and adds additional
+     * DOM attributes for the sharing file info.
+     *
+     * @param {OCA.Files.FileList} fileList file list to be extended
+     */
+    attach: function attach(fileList) {
+      // core sharing is disabled/not loaded
+      if (!OC.Share) {
+        return;
+      }
+
+      if (fileList.id === 'trashbin' || fileList.id === 'files.public') {
+        return;
+      }
+
+      var fileActions = fileList.fileActions;
+      var oldCreateRow = fileList._createRow;
+
+      fileList._createRow = function (fileData) {
+        var tr = oldCreateRow.apply(this, arguments);
+        var sharePermissions = OCA.Sharing.Util.getSharePermissions(fileData);
+
+        if (fileData.permissions === 0) {
+          // no permission, disabling sidebar
+          delete fileActions.actions.all.Comment;
+          delete fileActions.actions.all.Details;
+          delete fileActions.actions.all.Goto;
+        }
+
+        tr.attr('data-share-permissions', sharePermissions);
+
+        if (fileData.shareOwner) {
+          tr.attr('data-share-owner', fileData.shareOwner);
+          tr.attr('data-share-owner-id', fileData.shareOwnerId); // user should always be able to rename a mount point
+
+          if (fileData.mountType === 'shared-root') {
+            tr.attr('data-permissions', fileData.permissions | OC.PERMISSION_UPDATE);
+          }
+        }
+
+        if (fileData.recipientData && !_.isEmpty(fileData.recipientData)) {
+          tr.attr('data-share-recipient-data', JSON.stringify(fileData.recipientData));
+        }
+
+        if (fileData.shareTypes) {
+          tr.attr('data-share-types', fileData.shareTypes.join(','));
+        }
+
+        return tr;
+      };
+
+      var oldElementToFile = fileList.elementToFile;
+
+      fileList.elementToFile = function ($el) {
+        var fileInfo = oldElementToFile.apply(this, arguments);
+        fileInfo.sharePermissions = $el.attr('data-share-permissions') || undefined;
+        fileInfo.shareOwner = $el.attr('data-share-owner') || undefined;
+        fileInfo.shareOwnerId = $el.attr('data-share-owner-id') || undefined;
+
+        if ($el.attr('data-share-types')) {
+          fileInfo.shareTypes = $el.attr('data-share-types').split(',');
+        }
+
+        if ($el.attr('data-expiration')) {
+          var expirationTimestamp = parseInt($el.attr('data-expiration'));
+          fileInfo.shares = [];
+          fileInfo.shares.push({
+            expiration: expirationTimestamp
+          });
+        }
+
+        return fileInfo;
+      };
+
+      var oldGetWebdavProperties = fileList._getWebdavProperties;
+
+      fileList._getWebdavProperties = function () {
+        var props = oldGetWebdavProperties.apply(this, arguments);
+        props.push(OC.Files.Client.PROPERTY_OWNER_ID);
+        props.push(OC.Files.Client.PROPERTY_OWNER_DISPLAY_NAME);
+        props.push(OC.Files.Client.PROPERTY_SHARE_TYPES);
+        return props;
+      };
+
+      fileList.filesClient.addFileInfoParser(function (response) {
+        var data = {};
+        var props = response.propStat[0].properties;
+        var permissionsProp = props[OC.Files.Client.PROPERTY_PERMISSIONS];
+
+        if (permissionsProp && permissionsProp.indexOf('S') >= 0) {
+          data.shareOwner = props[OC.Files.Client.PROPERTY_OWNER_DISPLAY_NAME];
+          data.shareOwnerId = props[OC.Files.Client.PROPERTY_OWNER_ID];
+        }
+
+        var shareTypesProp = props[OC.Files.Client.PROPERTY_SHARE_TYPES];
+
+        if (shareTypesProp) {
+          data.shareTypes = _.chain(shareTypesProp).filter(function (xmlvalue) {
+            return xmlvalue.namespaceURI === OC.Files.Client.NS_OWNCLOUD && xmlvalue.nodeName.split(':')[1] === 'share-type';
+          }).map(function (xmlvalue) {
+            return parseInt(xmlvalue.textContent || xmlvalue.text, 10);
+          }).value();
+        }
+
+        return data;
+      }); // use delegate to catch the case with multiple file lists
+
+      fileList.$el.on('fileActionsReady', function (ev) {
+        var $files = ev.$files;
+
+        _.each($files, function (file) {
+          var $tr = $(file);
+          var shareTypes = $tr.attr('data-share-types') || '';
+          var shareOwner = $tr.attr('data-share-owner');
+
+          if (shareTypes || shareOwner) {
+            var hasLink = false;
+            var hasShares = false;
+
+            _.each(shareTypes.split(',') || [], function (shareType) {
+              shareType = parseInt(shareType, 10);
+
+              if (shareType === OC.Share.SHARE_TYPE_LINK) {
+                hasLink = true;
+              } else if (shareType === OC.Share.SHARE_TYPE_EMAIL) {
+                hasLink = true;
+              } else if (shareType === OC.Share.SHARE_TYPE_USER) {
+                hasShares = true;
+              } else if (shareType === OC.Share.SHARE_TYPE_GROUP) {
+                hasShares = true;
+              } else if (shareType === OC.Share.SHARE_TYPE_REMOTE) {
+                hasShares = true;
+              } else if (shareType === OC.Share.SHARE_TYPE_CIRCLE) {
+                hasShares = true;
+              } else if (shareType === OC.Share.SHARE_TYPE_ROOM) {
+                hasShares = true;
+              }
+            });
+
+            OCA.Sharing.Util._updateFileActionIcon($tr, hasShares, hasLink);
+          }
+        });
+      });
+      fileList.$el.on('changeDirectory', function () {
+        OCA.Sharing.sharesLoaded = false;
+      });
+      fileActions.registerAction({
+        name: 'Share',
+        displayName: function displayName(context) {
+          if (context && context.$file) {
+            var shareType = parseInt(context.$file.data('share-types'), 10);
+            var shareOwner = context.$file.data('share-owner-id');
+
+            if (shareType >= 0 || shareOwner) {
+              return t('core', 'Shared');
+            }
+          }
+
+          return t('core', 'Share');
+        },
+        altText: t('core', 'Share'),
+        mime: 'all',
+        order: -150,
+        permissions: OC.PERMISSION_ALL,
+        iconClass: function iconClass(fileName, context) {
+          var shareType = parseInt(context.$file.data('share-types'), 10);
+
+          if (shareType === OC.Share.SHARE_TYPE_EMAIL || shareType === OC.Share.SHARE_TYPE_LINK) {
+            return 'icon-public';
+          }
+
+          return 'icon-shared';
+        },
+        icon: function icon(fileName, context) {
+          var shareOwner = context.$file.data('share-owner-id');
+
+          if (shareOwner) {
+            return OC.generateUrl("/avatar/".concat(shareOwner, "/32"));
+          }
+        },
+        type: OCA.Files.FileActions.TYPE_INLINE,
+        actionHandler: function actionHandler(fileName, context) {
+          // do not open sidebar if permission is set and equal to 0
+          var permissions = parseInt(context.$file.data('share-permissions'), 10);
+
+          if (isNaN(permissions) || permissions > 0) {
+            fileList.showDetailsView(fileName, 'sharing');
+          }
+        },
+        render: function render(actionSpec, isDefault, context) {
+          var permissions = parseInt(context.$file.data('permissions'), 10); // if no share permissions but share owner exists, still show the link
+
+          if ((permissions & OC.PERMISSION_SHARE) !== 0 || context.$file.attr('data-share-owner')) {
+            return fileActions._defaultRenderAction.call(fileActions, actionSpec, isDefault, context);
+          } // don't render anything
+
+
+          return null;
+        }
+      }); // register share breadcrumbs component
+
+      var breadCrumbSharingDetailView = new OCA.Sharing.ShareBreadCrumbView();
+      fileList.registerBreadCrumbDetailView(breadCrumbSharingDetailView);
+    },
+
+    /**
+     * Update file list data attributes
+     */
+    _updateFileListDataAttributes: function _updateFileListDataAttributes(fileList, $tr, shareModel) {
+      // files app current cannot show recipients on load, so we don't update the
+      // icon when changed for consistency
+      if (fileList.id === 'files') {
+        return;
+      }
+
+      var recipients = _.pluck(shareModel.get('shares'), 'share_with_displayname'); // note: we only update the data attribute because updateIcon()
+
+
+      if (recipients.length) {
+        var recipientData = _.mapObject(shareModel.get('shares'), function (share) {
+          return {
+            shareWith: share.share_with,
+            shareWithDisplayName: share.share_with_displayname
+          };
+        });
+
+        $tr.attr('data-share-recipient-data', JSON.stringify(recipientData));
+      } else {
+        $tr.removeAttr('data-share-recipient-data');
+      }
+    },
+
+    /**
+     * Update the file action share icon for the given file
+     *
+     * @param $tr file element of the file to update
+     * @param {boolean} hasUserShares true if a user share exists
+     * @param {boolean} hasLinkShares true if a link share exists
+     *
+     * @returns {boolean} true if the icon was set, false otherwise
+     */
+    _updateFileActionIcon: function _updateFileActionIcon($tr, hasUserShares, hasLinkShares) {
+      console.info('object'); // if the statuses are loaded already, use them for the icon
+      // (needed when scrolling to the next page)
+
+      if (hasUserShares || hasLinkShares || $tr.attr('data-share-recipient-data') || $tr.attr('data-share-owner')) {
+        OCA.Sharing.Util._markFileAsShared($tr, true, hasLinkShares);
+
+        return true;
+      }
+
+      return false;
+    },
+
+    /**
+     * Marks/unmarks a given file as shared by changing its action icon
+     * and folder icon.
+     *
+     * @param $tr file element to mark as shared
+     * @param hasShares whether shares are available
+     * @param hasLink whether link share is available
+     */
+    _markFileAsShared: function _markFileAsShared($tr, hasShares, hasLink) {
+      var action = $tr.find('.fileactions .action[data-action="Share"]');
+      var type = $tr.data('type');
+      var icon = action.find('.icon');
+      var message, recipients, avatars;
+      var ownerId = $tr.attr('data-share-owner-id');
+      var owner = $tr.attr('data-share-owner');
+      var mountType = $tr.attr('data-mounttype');
+      var shareFolderIcon;
+      var iconClass = 'icon-shared';
+      action.removeClass('shared-style'); // update folder icon
+
+      if (type === 'dir' && (hasShares || hasLink || ownerId)) {
+        if (typeof mountType !== 'undefined' && mountType !== 'shared-root' && mountType !== 'shared') {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-' + mountType);
+        } else if (hasLink) {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-public');
+        } else {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-shared');
+        }
+
+        $tr.find('.filename .thumbnail').css('background-image', 'url(' + shareFolderIcon + ')');
+        $tr.attr('data-icon', shareFolderIcon);
+      } else if (type === 'dir') {
+        var isEncrypted = $tr.attr('data-e2eencrypted'); // FIXME: duplicate of FileList._createRow logic for external folder,
+        // need to refactor the icon logic into a single code path eventually
+
+        if (isEncrypted === 'true') {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-encrypted');
+          $tr.attr('data-icon', shareFolderIcon);
+        } else if (mountType && mountType.indexOf('external') === 0) {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-external');
+          $tr.attr('data-icon', shareFolderIcon);
+        } else {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir'); // back to default
+
+          $tr.removeAttr('data-icon');
+        }
+
+        $tr.find('.filename .thumbnail').css('background-image', 'url(' + shareFolderIcon + ')');
+      } // update share action text / icon
+
+
+      if (hasShares || ownerId) {
+        recipients = $tr.data('share-recipient-data');
+        action.addClass('shared-style');
+        avatars = '<span>' + t('core', 'Shared') + '</span>'; // even if reshared, only show "Shared by"
+
+        if (ownerId) {
+          message = t('core', 'Shared by');
+          avatars = OCA.Sharing.Util._formatRemoteShare(ownerId, owner, message);
+        } else if (recipients) {
+          avatars = OCA.Sharing.Util._formatShareList(recipients);
+        }
+
+        action.html(avatars).prepend(icon);
+
+        if (ownerId || recipients) {
+          var avatarElement = action.find('.avatar');
+          avatarElement.each(function () {
+            $(this).avatar($(this).data('username'), 32);
+          });
+          action.find('span[title]').tooltip({
+            placement: 'top'
+          });
+        }
+      } else {
+        action.html('<span class="hidden-visually">' + t('core', 'Shared') + '</span>').prepend(icon);
+      }
+
+      if (hasLink) {
+        iconClass = 'icon-public';
+      }
+
+      icon.removeClass('icon-shared icon-public').addClass(iconClass);
+    },
+
+    /**	
+     * Format a remote address	
+     *	
+    * @param {String} shareWith userid, full remote share, or whatever	
+    * @param {String} shareWithDisplayName	
+    * @param {String} message	
+    * @returns {String} HTML code to display	
+    */
+    _formatRemoteShare: function _formatRemoteShare(shareWith, shareWithDisplayName, message) {
+      var parts = OCA.Sharing.Util._REMOTE_OWNER_REGEXP.exec(shareWith);
+
+      if (!parts) {
+        // display avatar of the user	
+        var avatar = '<span class="avatar" data-username="' + escapeHTML(shareWith) + '" title="' + message + ' ' + escapeHTML(shareWithDisplayName) + '"></span>';
+        var hidden = '<span class="hidden-visually">' + message + ' ' + escapeHTML(shareWithDisplayName) + '</span> ';
+        return avatar + hidden;
+      }
+
+      var userName = parts[1];
+      var userDomain = parts[3];
+      var server = parts[4];
+      var tooltip = message + ' ' + userName;
+
+      if (userDomain) {
+        tooltip += '@' + userDomain;
+      }
+
+      if (server) {
+        if (!userDomain) {
+          userDomain = '…';
+        }
+
+        tooltip += '@' + server;
+      }
+
+      var html = '<span class="remoteAddress" title="' + escapeHTML(tooltip) + '">';
+      html += '<span class="username">' + escapeHTML(userName) + '</span>';
+
+      if (userDomain) {
+        html += '<span class="userDomain">@' + escapeHTML(userDomain) + '</span>';
+      }
+
+      html += '</span> ';
+      return html;
+    },
+
+    /**	
+     * Loop over all recipients in the list and format them using	
+     * all kind of fancy magic.	
+     *	
+    * @param {Object} recipients array of all the recipients	
+    * @returns {String[]} modified list of recipients	
+    */
+    _formatShareList: function _formatShareList(recipients) {
+      var _parent = this;
+
+      recipients = _.toArray(recipients);
+      recipients.sort(function (a, b) {
+        return a.shareWithDisplayName.localeCompare(b.shareWithDisplayName);
+      });
+      return $.map(recipients, function (recipient) {
+        return _parent._formatRemoteShare(recipient.shareWith, recipient.shareWithDisplayName, t('core', 'Shared with'));
+      });
+    },
+
+    /**	
+     * Marks/unmarks a given file as shared by changing its action icon	
+     * and folder icon.	
+     *	
+    * @param $tr file element to mark as shared	
+    * @param hasShares whether shares are available	
+    * @param hasLink whether link share is available	
+    */
+    markFileAsShared: function markFileAsShared($tr, hasShares, hasLink) {
+      var action = $tr.find('.fileactions .action[data-action="Share"]');
+      var type = $tr.data('type');
+      var icon = action.find('.icon');
+      var message, recipients, avatars;
+      var ownerId = $tr.attr('data-share-owner-id');
+      var owner = $tr.attr('data-share-owner');
+      var mountType = $tr.attr('data-mounttype');
+      var shareFolderIcon;
+      var iconClass = 'icon-shared';
+      action.removeClass('shared-style'); // update folder icon	
+
+      if (type === 'dir' && (hasShares || hasLink || ownerId)) {
+        if (typeof mountType !== 'undefined' && mountType !== 'shared-root' && mountType !== 'shared') {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-' + mountType);
+        } else if (hasLink) {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-public');
+        } else {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-shared');
+        }
+
+        $tr.find('.filename .thumbnail').css('background-image', 'url(' + shareFolderIcon + ')');
+        $tr.attr('data-icon', shareFolderIcon);
+      } else if (type === 'dir') {
+        var isEncrypted = $tr.attr('data-e2eencrypted'); // FIXME: duplicate of FileList._createRow logic for external folder,	
+        // need to refactor the icon logic into a single code path eventually	
+
+        if (isEncrypted === 'true') {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-encrypted');
+          $tr.attr('data-icon', shareFolderIcon);
+        } else if (mountType && mountType.indexOf('external') === 0) {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir-external');
+          $tr.attr('data-icon', shareFolderIcon);
+        } else {
+          shareFolderIcon = OC.MimeType.getIconUrl('dir'); // back to default	
+
+          $tr.removeAttr('data-icon');
+        }
+
+        $tr.find('.filename .thumbnail').css('background-image', 'url(' + shareFolderIcon + ')');
+      } // update share action text / icon	
+
+
+      if (hasShares || ownerId) {
+        recipients = $tr.data('share-recipient-data');
+        action.addClass('shared-style');
+        avatars = '<span>' + t('core', 'Shared') + '</span>'; // even if reshared, only show "Shared by"	
+
+        if (ownerId) {
+          message = t('core', 'Shared by');
+          avatars = this._formatRemoteShare(ownerId, owner, message);
+        } else if (recipients) {
+          avatars = this._formatShareList(recipients);
+        }
+
+        action.html(avatars).prepend(icon);
+
+        if (ownerId || recipients) {
+          var avatarElement = action.find('.avatar');
+          avatarElement.each(function () {
+            $(this).avatar($(this).data('username'), 32);
+          });
+          action.find('span[title]').tooltip({
+            placement: 'top'
+          });
+        }
+      } else {
+        action.html('<span class="hidden-visually">' + t('core', 'Shared') + '</span>').prepend(icon);
+      }
+
+      if (hasLink) {
+        iconClass = 'icon-public';
+      }
+
+      icon.removeClass('icon-shared icon-public').addClass(iconClass);
+    },
+
+    /**
+     * @param {Array} fileData
+     * @returns {String}
+     */
+    getSharePermissions: function getSharePermissions(fileData) {
+      return fileData.sharePermissions;
+    }
+  };
+})();
+
+OC.Plugins.register('OCA.Files.FileList', OCA.Sharing.Util);
+
+/***/ }),
+
+/***/ "./apps/files_sharing/src/sharebreadcrumbview.js":
+/*!*******************************************************!*\
+  !*** ./apps/files_sharing/src/sharebreadcrumbview.js ***!
+  \*******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
 /**
  * @copyright 2016 Christoph Wurst <christoph@winzerhof-wurst.at>
  *
@@ -20,5 +733,475 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-!function(){"use strict";var e=OC.Backbone.View.extend({tagName:"span",events:{click:"_onClick"},_dirInfo:void 0,render:function(e){if(this._dirInfo=e.dirInfo||null,null===this._dirInfo||"/"===this._dirInfo.path&&""===this._dirInfo.name)this.$el.removeClass("shared icon-public icon-shared"),this.$el.hide();else{var t=e.dirInfo&&e.dirInfo.shareTypes&&e.dirInfo.shareTypes.length>0;this.$el.removeClass("shared icon-public icon-shared"),t?(this.$el.addClass("shared"),-1!==e.dirInfo.shareTypes.indexOf(OC.Share.SHARE_TYPE_LINK)?this.$el.addClass("icon-public"):this.$el.addClass("icon-shared")):this.$el.addClass("icon-shared"),this.$el.show(),this.delegateEvents()}return this},_onClick:function(e){e.preventDefault();var t=new OCA.Files.FileInfoModel(this._dirInfo),a=this;t.on("change",(function(){a.render({dirInfo:a._dirInfo})}));var r=t.attributes.path+"/"+t.attributes.name;OCA.Files.Sidebar.file=r,OCA.Files.Sidebar.activeTab="sharing"}});OCA.Sharing.ShareBreadCrumbView=e}()},177:function(e,t,a){var r=a(178);"string"==typeof r&&(r=[[e.i,r,""]]),r.locals&&(e.exports=r.locals);(0,a(22).default)("57e7eec1",r,!0,{})},178:function(e,t,a){(e.exports=a(19)(!1)).push([e.i,"div.crumb span.icon-shared,div.crumb span.icon-public{display:inline-block;cursor:pointer;opacity:0.2;margin-right:6px}div.crumb span.icon-shared.shared,div.crumb span.icon-public.shared{opacity:0.7}\n",""])},19:function(e,t,a){"use strict";e.exports=function(e){var t=[];return t.toString=function(){return this.map((function(t){var a=function(e,t){var a=e[1]||"",r=e[3];if(!r)return a;if(t&&"function"==typeof btoa){var n=(s=r,o=btoa(unescape(encodeURIComponent(JSON.stringify(s)))),l="sourceMappingURL=data:application/json;charset=utf-8;base64,".concat(o),"/*# ".concat(l," */")),i=r.sources.map((function(e){return"/*# sourceURL=".concat(r.sourceRoot).concat(e," */")}));return[a].concat(i).concat([n]).join("\n")}var s,o,l;return[a].join("\n")}(t,e);return t[2]?"@media ".concat(t[2],"{").concat(a,"}"):a})).join("")},t.i=function(e,a){"string"==typeof e&&(e=[[null,e,""]]);for(var r={},n=0;n<this.length;n++){var i=this[n][0];null!=i&&(r[i]=!0)}for(var s=0;s<e.length;s++){var o=e[s];null!=o[0]&&r[o[0]]||(a&&!o[2]?o[2]=a:a&&(o[2]="(".concat(o[2],") and (").concat(a,")")),t.push(o))}},t}},22:function(e,t,a){"use strict";function r(e,t){for(var a=[],r={},n=0;n<t.length;n++){var i=t[n],s=i[0],o={id:e+":"+n,css:i[1],media:i[2],sourceMap:i[3]};r[s]?r[s].parts.push(o):a.push(r[s]={id:s,parts:[o]})}return a}a.r(t),a.d(t,"default",(function(){return f}));var n="undefined"!=typeof document;if("undefined"!=typeof DEBUG&&DEBUG&&!n)throw new Error("vue-style-loader cannot be used in a non-browser environment. Use { target: 'node' } in your Webpack config to indicate a server-rendering environment.");var i={},s=n&&(document.head||document.getElementsByTagName("head")[0]),o=null,l=0,d=!1,c=function(){},h=null,u="data-vue-ssr-id",p="undefined"!=typeof navigator&&/msie [6-9]\b/.test(navigator.userAgent.toLowerCase());function f(e,t,a,n){d=a,h=n||{};var s=r(e,t);return m(s),function(t){for(var a=[],n=0;n<s.length;n++){var o=s[n];(l=i[o.id]).refs--,a.push(l)}t?m(s=r(e,t)):s=[];for(n=0;n<a.length;n++){var l;if(0===(l=a[n]).refs){for(var d=0;d<l.parts.length;d++)l.parts[d]();delete i[l.id]}}}}function m(e){for(var t=0;t<e.length;t++){var a=e[t],r=i[a.id];if(r){r.refs++;for(var n=0;n<r.parts.length;n++)r.parts[n](a.parts[n]);for(;n<a.parts.length;n++)r.parts.push(C(a.parts[n]));r.parts.length>a.parts.length&&(r.parts.length=a.parts.length)}else{var s=[];for(n=0;n<a.parts.length;n++)s.push(C(a.parts[n]));i[a.id]={id:a.id,refs:1,parts:s}}}}function O(){var e=document.createElement("style");return e.type="text/css",s.appendChild(e),e}function C(e){var t,a,r=document.querySelector("style["+u+'~="'+e.id+'"]');if(r){if(d)return c;r.parentNode.removeChild(r)}if(p){var n=l++;r=o||(o=O()),t=v.bind(null,r,n,!1),a=v.bind(null,r,n,!0)}else r=O(),t=E.bind(null,r),a=function(){r.parentNode.removeChild(r)};return t(e),function(r){if(r){if(r.css===e.css&&r.media===e.media&&r.sourceMap===e.sourceMap)return;t(e=r)}else a()}}var _,S=(_=[],function(e,t){return _[e]=t,_.filter(Boolean).join("\n")});function v(e,t,a,r){var n=a?"":r.css;if(e.styleSheet)e.styleSheet.cssText=S(t,n);else{var i=document.createTextNode(n),s=e.childNodes;s[t]&&e.removeChild(s[t]),s.length?e.insertBefore(i,s[t]):e.appendChild(i)}}function E(e,t){var a=t.css,r=t.media,n=t.sourceMap;if(r&&e.setAttribute("media",r),h.ssrId&&e.setAttribute(u,t.id),n&&(a+="\n/*# sourceURL="+n.sources[0]+" */",a+="\n/*# sourceMappingURL=data:application/json;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(n))))+" */"),e.styleSheet)e.styleSheet.cssText=a;else{for(;e.firstChild;)e.removeChild(e.firstChild);e.appendChild(document.createTextNode(a))}}},65:function(e,a,r){r.p=OC.linkTo("files_sharing","js/dist/"),r.nc=btoa(OC.requestToken),window.OCP.Collaboration.registerType("file",{action:function(){return new Promise((function(e,a){OC.dialogs.filepicker(t("files_sharing","Link to a file"),(function(t){OC.Files.getClient().getFileInfo(t).then((function(t,a){e(a.id)})).fail((function(){a(new Error("Cannot get fileinfo"))}))}),!1,null,!1,OC.dialogs.FILEPICKER_TYPE_CHOOSE,"",{allowDirectoryChooser:!0})}))},typeString:t("files_sharing","Link to a file"),typeIconClass:"icon-files-dark"})}});
+(function () {
+  'use strict';
+
+  var BreadCrumbView = OC.Backbone.View.extend({
+    tagName: 'span',
+    events: {
+      click: '_onClick'
+    },
+    _dirInfo: undefined,
+    render: function render(data) {
+      this._dirInfo = data.dirInfo || null;
+
+      if (this._dirInfo !== null && (this._dirInfo.path !== '/' || this._dirInfo.name !== '')) {
+        var isShared = data.dirInfo && data.dirInfo.shareTypes && data.dirInfo.shareTypes.length > 0;
+        this.$el.removeClass('shared icon-public icon-shared');
+
+        if (isShared) {
+          this.$el.addClass('shared');
+
+          if (data.dirInfo.shareTypes.indexOf(OC.Share.SHARE_TYPE_LINK) !== -1) {
+            this.$el.addClass('icon-public');
+          } else {
+            this.$el.addClass('icon-shared');
+          }
+        } else {
+          this.$el.addClass('icon-shared');
+        }
+
+        this.$el.show();
+        this.delegateEvents();
+      } else {
+        this.$el.removeClass('shared icon-public icon-shared');
+        this.$el.hide();
+      }
+
+      return this;
+    },
+    _onClick: function _onClick(e) {
+      e.preventDefault();
+      var fileInfoModel = new OCA.Files.FileInfoModel(this._dirInfo);
+      var self = this;
+      fileInfoModel.on('change', function () {
+        self.render({
+          dirInfo: self._dirInfo
+        });
+      });
+      var path = fileInfoModel.attributes.path + '/' + fileInfoModel.attributes.name;
+      OCA.Files.Sidebar.file = path;
+      OCA.Files.Sidebar.activeTab = 'sharing';
+    }
+  });
+  OCA.Sharing.ShareBreadCrumbView = BreadCrumbView;
+})();
+
+/***/ }),
+
+/***/ "./apps/files_sharing/src/style/sharebreadcrumb.scss":
+/*!***********************************************************!*\
+  !*** ./apps/files_sharing/src/style/sharebreadcrumb.scss ***!
+  \***********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+// style-loader: Adds some css to the DOM by adding a <style> tag
+
+// load the styles
+var content = __webpack_require__(/*! !../../../../node_modules/css-loader/dist/cjs.js!../../../../node_modules/sass-loader/dist/cjs.js!./sharebreadcrumb.scss */ "./node_modules/css-loader/dist/cjs.js!./node_modules/sass-loader/dist/cjs.js!./apps/files_sharing/src/style/sharebreadcrumb.scss");
+if(typeof content === 'string') content = [[module.i, content, '']];
+if(content.locals) module.exports = content.locals;
+// add the styles to the DOM
+var add = __webpack_require__(/*! ../../../../node_modules/vue-style-loader/lib/addStylesClient.js */ "./node_modules/vue-style-loader/lib/addStylesClient.js").default
+var update = add("57e7eec1", content, false, {});
+// Hot Module Replacement
+if(false) {}
+
+/***/ }),
+
+/***/ "./node_modules/css-loader/dist/cjs.js!./node_modules/sass-loader/dist/cjs.js!./apps/files_sharing/src/style/sharebreadcrumb.scss":
+/*!****************************************************************************************************************************************!*\
+  !*** ./node_modules/css-loader/dist/cjs.js!./node_modules/sass-loader/dist/cjs.js!./apps/files_sharing/src/style/sharebreadcrumb.scss ***!
+  \****************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(/*! ../../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
+// Module
+exports.push([module.i, "/**\n * @copyright 2016 Christoph Wurst <christoph@winzerhof-wurst.at>\n *\n * @author 2016 Christoph Wurst <christoph@winzerhof-wurst.at>\n *\n * @license GNU AGPL version 3 or any later version\n *\n * This program is free software: you can redistribute it and/or modify\n * it under the terms of the GNU Affero General Public License as\n * published by the Free Software Foundation, either version 3 of the\n * License, or (at your option) any later version.\n *\n * This program is distributed in the hope that it will be useful,\n * but WITHOUT ANY WARRANTY; without even the implied warranty of\n * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n * GNU Affero General Public License for more details.\n *\n * You should have received a copy of the GNU Affero General Public License\n * along with this program.  If not, see <http://www.gnu.org/licenses/>.\n *\n */\ndiv.crumb span.icon-shared,\ndiv.crumb span.icon-public {\n  display: inline-block;\n  cursor: pointer;\n  opacity: 0.2;\n  margin-right: 6px; }\n\ndiv.crumb span.icon-shared.shared,\ndiv.crumb span.icon-public.shared {\n  opacity: 0.7; }\n", ""]);
+
+
+/***/ }),
+
+/***/ "./node_modules/css-loader/dist/runtime/api.js":
+/*!*****************************************************!*\
+  !*** ./node_modules/css-loader/dist/runtime/api.js ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/*
+  MIT License http://www.opensource.org/licenses/mit-license.php
+  Author Tobias Koppers @sokra
+*/
+// css base code, injected by the css-loader
+// eslint-disable-next-line func-names
+module.exports = function (useSourceMap) {
+  var list = []; // return the list of modules as css string
+
+  list.toString = function toString() {
+    return this.map(function (item) {
+      var content = cssWithMappingToString(item, useSourceMap);
+
+      if (item[2]) {
+        return "@media ".concat(item[2], "{").concat(content, "}");
+      }
+
+      return content;
+    }).join('');
+  }; // import a list of modules into the list
+  // eslint-disable-next-line func-names
+
+
+  list.i = function (modules, mediaQuery) {
+    if (typeof modules === 'string') {
+      // eslint-disable-next-line no-param-reassign
+      modules = [[null, modules, '']];
+    }
+
+    var alreadyImportedModules = {};
+
+    for (var i = 0; i < this.length; i++) {
+      // eslint-disable-next-line prefer-destructuring
+      var id = this[i][0];
+
+      if (id != null) {
+        alreadyImportedModules[id] = true;
+      }
+    }
+
+    for (var _i = 0; _i < modules.length; _i++) {
+      var item = modules[_i]; // skip already imported module
+      // this implementation is not 100% perfect for weird media query combinations
+      // when a module is imported multiple times with different media queries.
+      // I hope this will never occur (Hey this way we have smaller bundles)
+
+      if (item[0] == null || !alreadyImportedModules[item[0]]) {
+        if (mediaQuery && !item[2]) {
+          item[2] = mediaQuery;
+        } else if (mediaQuery) {
+          item[2] = "(".concat(item[2], ") and (").concat(mediaQuery, ")");
+        }
+
+        list.push(item);
+      }
+    }
+  };
+
+  return list;
+};
+
+function cssWithMappingToString(item, useSourceMap) {
+  var content = item[1] || ''; // eslint-disable-next-line prefer-destructuring
+
+  var cssMapping = item[3];
+
+  if (!cssMapping) {
+    return content;
+  }
+
+  if (useSourceMap && typeof btoa === 'function') {
+    var sourceMapping = toComment(cssMapping);
+    var sourceURLs = cssMapping.sources.map(function (source) {
+      return "/*# sourceURL=".concat(cssMapping.sourceRoot).concat(source, " */");
+    });
+    return [content].concat(sourceURLs).concat([sourceMapping]).join('\n');
+  }
+
+  return [content].join('\n');
+} // Adapted from convert-source-map (MIT)
+
+
+function toComment(sourceMap) {
+  // eslint-disable-next-line no-undef
+  var base64 = btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))));
+  var data = "sourceMappingURL=data:application/json;charset=utf-8;base64,".concat(base64);
+  return "/*# ".concat(data, " */");
+}
+
+/***/ }),
+
+/***/ "./node_modules/vue-style-loader/lib/addStylesClient.js":
+/*!**************************************************************!*\
+  !*** ./node_modules/vue-style-loader/lib/addStylesClient.js ***!
+  \**************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return addStylesClient; });
+/* harmony import */ var _listToStyles__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./listToStyles */ "./node_modules/vue-style-loader/lib/listToStyles.js");
+/*
+  MIT License http://www.opensource.org/licenses/mit-license.php
+  Author Tobias Koppers @sokra
+  Modified by Evan You @yyx990803
+*/
+
+
+
+var hasDocument = typeof document !== 'undefined'
+
+if (typeof DEBUG !== 'undefined' && DEBUG) {
+  if (!hasDocument) {
+    throw new Error(
+    'vue-style-loader cannot be used in a non-browser environment. ' +
+    "Use { target: 'node' } in your Webpack config to indicate a server-rendering environment."
+  ) }
+}
+
+/*
+type StyleObject = {
+  id: number;
+  parts: Array<StyleObjectPart>
+}
+
+type StyleObjectPart = {
+  css: string;
+  media: string;
+  sourceMap: ?string
+}
+*/
+
+var stylesInDom = {/*
+  [id: number]: {
+    id: number,
+    refs: number,
+    parts: Array<(obj?: StyleObjectPart) => void>
+  }
+*/}
+
+var head = hasDocument && (document.head || document.getElementsByTagName('head')[0])
+var singletonElement = null
+var singletonCounter = 0
+var isProduction = false
+var noop = function () {}
+var options = null
+var ssrIdKey = 'data-vue-ssr-id'
+
+// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
+// tags it will allow on a page
+var isOldIE = typeof navigator !== 'undefined' && /msie [6-9]\b/.test(navigator.userAgent.toLowerCase())
+
+function addStylesClient (parentId, list, _isProduction, _options) {
+  isProduction = _isProduction
+
+  options = _options || {}
+
+  var styles = Object(_listToStyles__WEBPACK_IMPORTED_MODULE_0__["default"])(parentId, list)
+  addStylesToDom(styles)
+
+  return function update (newList) {
+    var mayRemove = []
+    for (var i = 0; i < styles.length; i++) {
+      var item = styles[i]
+      var domStyle = stylesInDom[item.id]
+      domStyle.refs--
+      mayRemove.push(domStyle)
+    }
+    if (newList) {
+      styles = Object(_listToStyles__WEBPACK_IMPORTED_MODULE_0__["default"])(parentId, newList)
+      addStylesToDom(styles)
+    } else {
+      styles = []
+    }
+    for (var i = 0; i < mayRemove.length; i++) {
+      var domStyle = mayRemove[i]
+      if (domStyle.refs === 0) {
+        for (var j = 0; j < domStyle.parts.length; j++) {
+          domStyle.parts[j]()
+        }
+        delete stylesInDom[domStyle.id]
+      }
+    }
+  }
+}
+
+function addStylesToDom (styles /* Array<StyleObject> */) {
+  for (var i = 0; i < styles.length; i++) {
+    var item = styles[i]
+    var domStyle = stylesInDom[item.id]
+    if (domStyle) {
+      domStyle.refs++
+      for (var j = 0; j < domStyle.parts.length; j++) {
+        domStyle.parts[j](item.parts[j])
+      }
+      for (; j < item.parts.length; j++) {
+        domStyle.parts.push(addStyle(item.parts[j]))
+      }
+      if (domStyle.parts.length > item.parts.length) {
+        domStyle.parts.length = item.parts.length
+      }
+    } else {
+      var parts = []
+      for (var j = 0; j < item.parts.length; j++) {
+        parts.push(addStyle(item.parts[j]))
+      }
+      stylesInDom[item.id] = { id: item.id, refs: 1, parts: parts }
+    }
+  }
+}
+
+function createStyleElement () {
+  var styleElement = document.createElement('style')
+  styleElement.type = 'text/css'
+  head.appendChild(styleElement)
+  return styleElement
+}
+
+function addStyle (obj /* StyleObjectPart */) {
+  var update, remove
+  var styleElement = document.querySelector('style[' + ssrIdKey + '~="' + obj.id + '"]')
+
+  if (styleElement) {
+    if (isProduction) {
+      // has SSR styles and in production mode.
+      // simply do nothing.
+      return noop
+    } else {
+      // has SSR styles but in dev mode.
+      // for some reason Chrome can't handle source map in server-rendered
+      // style tags - source maps in <style> only works if the style tag is
+      // created and inserted dynamically. So we remove the server rendered
+      // styles and inject new ones.
+      styleElement.parentNode.removeChild(styleElement)
+    }
+  }
+
+  if (isOldIE) {
+    // use singleton mode for IE9.
+    var styleIndex = singletonCounter++
+    styleElement = singletonElement || (singletonElement = createStyleElement())
+    update = applyToSingletonTag.bind(null, styleElement, styleIndex, false)
+    remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true)
+  } else {
+    // use multi-style-tag mode in all other cases
+    styleElement = createStyleElement()
+    update = applyToTag.bind(null, styleElement)
+    remove = function () {
+      styleElement.parentNode.removeChild(styleElement)
+    }
+  }
+
+  update(obj)
+
+  return function updateStyle (newObj /* StyleObjectPart */) {
+    if (newObj) {
+      if (newObj.css === obj.css &&
+          newObj.media === obj.media &&
+          newObj.sourceMap === obj.sourceMap) {
+        return
+      }
+      update(obj = newObj)
+    } else {
+      remove()
+    }
+  }
+}
+
+var replaceText = (function () {
+  var textStore = []
+
+  return function (index, replacement) {
+    textStore[index] = replacement
+    return textStore.filter(Boolean).join('\n')
+  }
+})()
+
+function applyToSingletonTag (styleElement, index, remove, obj) {
+  var css = remove ? '' : obj.css
+
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = replaceText(index, css)
+  } else {
+    var cssNode = document.createTextNode(css)
+    var childNodes = styleElement.childNodes
+    if (childNodes[index]) styleElement.removeChild(childNodes[index])
+    if (childNodes.length) {
+      styleElement.insertBefore(cssNode, childNodes[index])
+    } else {
+      styleElement.appendChild(cssNode)
+    }
+  }
+}
+
+function applyToTag (styleElement, obj) {
+  var css = obj.css
+  var media = obj.media
+  var sourceMap = obj.sourceMap
+
+  if (media) {
+    styleElement.setAttribute('media', media)
+  }
+  if (options.ssrId) {
+    styleElement.setAttribute(ssrIdKey, obj.id)
+  }
+
+  if (sourceMap) {
+    // https://developer.chrome.com/devtools/docs/javascript-debugging
+    // this makes source maps inside style tags work properly in Chrome
+    css += '\n/*# sourceURL=' + sourceMap.sources[0] + ' */'
+    // http://stackoverflow.com/a/26603875
+    css += '\n/*# sourceMappingURL=data:application/json;base64,' + btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))) + ' */'
+  }
+
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = css
+  } else {
+    while (styleElement.firstChild) {
+      styleElement.removeChild(styleElement.firstChild)
+    }
+    styleElement.appendChild(document.createTextNode(css))
+  }
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/vue-style-loader/lib/listToStyles.js":
+/*!***********************************************************!*\
+  !*** ./node_modules/vue-style-loader/lib/listToStyles.js ***!
+  \***********************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return listToStyles; });
+/**
+ * Translates the list format produced by css-loader into something
+ * easier to manipulate.
+ */
+function listToStyles (parentId, list) {
+  var styles = []
+  var newStyles = {}
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i]
+    var id = item[0]
+    var css = item[1]
+    var media = item[2]
+    var sourceMap = item[3]
+    var part = {
+      id: parentId + ':' + i,
+      css: css,
+      media: media,
+      sourceMap: sourceMap
+    }
+    if (!newStyles[id]) {
+      styles.push(newStyles[id] = { id: id, parts: [part] })
+    } else {
+      newStyles[id].parts.push(part)
+    }
+  }
+  return styles
+}
+
+
+/***/ })
+
+/******/ });
 //# sourceMappingURL=additionalScripts.js.map
