@@ -38,6 +38,7 @@ return array(
     'OCA\\Files\\Event\\LoadSidebar' => $baseDir . '/../lib/Event/LoadSidebar.php',
     'OCA\\Files\\Helper' => $baseDir . '/../lib/Helper.php',
     'OCA\\Files\\Listener\\LegacyLoadAdditionalScriptsAdapter' => $baseDir . '/../lib/Listener/LegacyLoadAdditionalScriptsAdapter.php',
+    'OCA\\Files\\Migration\\Date20191113195931_transfer_ownership' => $baseDir . '/../lib/Migration/Date20191113195931_transfer_ownership.php',
     'OCA\\Files\\Notification\\Notifier' => $baseDir . '/../lib/Notification/Notifier.php',
     'OCA\\Files\\Service\\TagService' => $baseDir . '/../lib/Service/TagService.php',
 );
