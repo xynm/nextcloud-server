@@ -114,15 +114,15 @@ class DBConfigService {
 		return $this->getMountsFromQuery($query);
 	}
 
-	public function modifyMountsOnUserDelete(string $uid) {
-		$this->modifyMountsOnDelete($uid, self::APPLICABLE_TYPE_GROUP);
+	public function modifyMountsOnUserDelete(string $uid): void {
+		$this->modifyMountsOnDelete($uid, self::APPLICABLE_TYPE_USER);
 	}
 
-	public function modifyMountsOnGroupDelete(string $gid) {
+	public function modifyMountsOnGroupDelete(string $gid): void {
 		$this->modifyMountsOnDelete($gid, self::APPLICABLE_TYPE_GROUP);
 	}
 
-	protected function modifyMountsOnDelete(string $applicableId, int $applicableType) {
+	protected function modifyMountsOnDelete(string $applicableId, int $applicableType): void {
 		$builder = $this->connection->getQueryBuilder();
 		$query = $builder->select(['a.mount_id', $builder->func()->count('a.mount_id', 'count')])
 			->from('external_applicable', 'a')
