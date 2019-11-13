@@ -35,6 +35,7 @@ return array(
     'OCA\\Files\\Controller\\TransferOwnershipController' => $baseDir . '/../lib/Controller/TransferOwnershipController.php',
     'OCA\\Files\\Controller\\ViewController' => $baseDir . '/../lib/Controller/ViewController.php',
     'OCA\\Files\\Event\\LoadAdditionalScriptsEvent' => $baseDir . '/../lib/Event/LoadAdditionalScriptsEvent.php',
+    'OCA\\Files\\Event\\LoadSidebar' => $baseDir . '/../lib/Event/LoadSidebar.php',
     'OCA\\Files\\Helper' => $baseDir . '/../lib/Helper.php',
     'OCA\\Files\\Listener\\LegacyLoadAdditionalScriptsAdapter' => $baseDir . '/../lib/Listener/LegacyLoadAdditionalScriptsAdapter.php',
     'OCA\\Files\\Notification\\Notifier' => $baseDir . '/../lib/Notification/Notifier.php',
