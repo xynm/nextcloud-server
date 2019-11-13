@@ -116,7 +116,7 @@ class DBConfigService {
 
 	public function modifyMountsOnUserDelete(string $uid) {
 		$builder = $this->connection->getQueryBuilder();
-		$query = $builder->select(['a.mount_id', $builder->createFunction('COUNT(a.mount_id) as count')])
+		$query = $builder->select(['a.mount_id', $builder->func()->count('a.mount_id', 'count')])
 			->from('external_applicable', 'a')
 			->rightJoin('a', 'external_applicable', 'b', $builder->expr()->eq('a.mount_id', 'b.mount_id'))
 			->where($builder->expr()->andX( // mounts for user
