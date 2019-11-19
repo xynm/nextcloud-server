@@ -58,6 +58,7 @@ class ComposerStaticInitFiles
         'OCA\\Files\\Migration\\Version11301Date20191113195931' => __DIR__ . '/..' . '/../lib/Migration/Version11301Date20191113195931.php',
         'OCA\\Files\\Notification\\Notifier' => __DIR__ . '/..' . '/../lib/Notification/Notifier.php',
         'OCA\\Files\\Service\\TagService' => __DIR__ . '/..' . '/../lib/Service/TagService.php',
+        'OCA\\Files\\Settings\\PersonalSettings' => __DIR__ . '/..' . '/../lib/Settings/PersonalSettings.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
