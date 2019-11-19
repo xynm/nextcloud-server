@@ -767,7 +767,9 @@ class ShareAPIController extends OCSController {
 			try {
 				/** @var IShare $share */
 				$format = $this->formatShare($share, $node);
-				$formatted[] = $format;
+				if ($share->getSharedWith() !== $this->currentUser) {
+					$formatted[] = $format;
+				}
 				if ($share->getSharedBy() === $this->currentUser) {
 					$miniFormatted[] = $format;
 				}
