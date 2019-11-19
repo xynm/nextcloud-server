@@ -320,4 +320,33 @@ Feature: sharing
     And User "user2" should be included in the response
     And User "user3" should not be included in the response
 
+  Scenario: getting inherited shares of a file
+	Given user "user0" exists
+	And user "user1" exists
+	And user "user2" exists
+	And user "user3" exists
+	And User "user0" created a folder "/first"
+    And User "user0" created a folder "/first/second"
+    And User "user0" uploads file "data/textfile.txt" to "/first/test1.txt"
+	And User "user0" uploads file "data/textfile.txt" to "/first/second/test2.txt"
+    And folder "first" of user "user0" is shared with user "user1"
+    And file "first/test1.txt" of user "user1" is shared with user "user3"
+	And folder "first/second" of user "user0" is shared with user "user2"
+	And file "second/test2.txt" of user "user2" is shared with user "user3"
+	And As an "user0"
+	When sending "GET" to "/apps/files_sharing/api/v1/shares/inherited?path=first/second/test2.txt&reshares=true"
+	Then the OCS status code should be "100"
+	And the HTTP status code should be "200"
+    And User "user0" should not be included in the response
+    And User "user1" should be included in the response
+    And User "user2" should be included in the response
+    And User "user3" should be included in the response
+    When sending "GET" to "/apps/files_sharing/api/v1/shares/inherited?path=first/test1.txt&reshares=true"
+    Then the OCS status code should be "100"
+    And the HTTP status code should be "200"
+    And User "user0" should not be included in the response
+    And User "user1" should be included in the response
+    And User "user2" should not be included in the response
+    And User "user3" should be included in the response
+
 # See sharing-v1-part2.feature
