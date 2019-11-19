@@ -23,6 +23,7 @@ namespace Test\Share20;
 use OC\Files\Mount\MoveableMount;
 use OC\HintException;
 use OC\Share20\DefaultShareProvider;
+use OCP\EventDispatcher\Event;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -36,6 +37,7 @@ use OCP\IUser;
 use OCP\IUserManager;
 use OCP\L10N\IFactory;
 use OCP\Mail\IMailer;
+use OCP\Security\Events\ValidatePasswordPolicyEvent;
 use OCP\Share\Exceptions\ShareNotFound;
 use OCP\Share\IProviderFactory;
 use OCP\Share\IShare;
@@ -51,6 +53,7 @@ use OCP\Security\ISecureRandom;
 use OCP\Security\IHasher;
 use OCP\Files\Mount\IMountManager;
 use OCP\IGroupManager;
+use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
@@ -64,37 +67,37 @@ class ManagerTest extends \Test\TestCase {
 
 	/** @var Manager */
 	protected $manager;
-	/** @var ILogger|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var ILogger|MockObject */
 	protected $logger;
-	/** @var IConfig|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IConfig|MockObject */
 	protected $config;
-	/** @var ISecureRandom|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var ISecureRandom|MockObject */
 	protected $secureRandom;
-	/** @var IHasher|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IHasher|MockObject */
 	protected $hasher;
-	/** @var IShareProvider|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IShareProvider|MockObject */
 	protected $defaultProvider;
-	/** @var  IMountManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var  IMountManager|MockObject */
 	protected $mountManager;
-	/** @var  IGroupManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var  IGroupManager|MockObject */
 	protected $groupManager;
-	/** @var IL10N|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IL10N|MockObject */
 	protected $l;
-	/** @var IFactory|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IFactory|MockObject */
 	protected $l10nFactory;
 	/** @var DummyFactory */
 	protected $factory;
-	/** @var IUserManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IUserManager|MockObject */
 	protected $userManager;
-	/** @var IRootFolder | \PHPUnit_Framework_MockObject_MockObject */
+	/** @var IRootFolder | MockObject */
 	protected $rootFolder;
-	/** @var  EventDispatcherInterface | \PHPUnit_Framework_MockObject_MockObject */
+	/** @var  EventDispatcherInterface | MockObject */
 	protected $eventDispatcher;
-	/** @var  IMailer|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var  IMailer|MockObject */
 	protected $mailer;
-	/** @var  IURLGenerator|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var  IURLGenerator|MockObject */
 	protected $urlGenerator;
-	/** @var  \OC_Defaults|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var  \OC_Defaults|MockObject */
 	protected $defaults;
 
 	public function setUp() {
@@ -495,11 +498,12 @@ class ManagerTest extends \Test\TestCase {
 		]));
 
 		$this->eventDispatcher->expects($this->once())->method('dispatch')
-			->willReturnCallback(function($eventName, GenericEvent $event) {
-				$this->assertSame('OCP\PasswordPolicy::validate', $eventName);
-				$this->assertSame('password', $event->getSubject());
+			->willReturnCallback(function(Event $event) {
+				$this->assertInstanceOf(ValidatePasswordPolicyEvent::class, $event);
+				/** @var ValidatePasswordPolicyEvent $event */
+				$this->assertSame('password', $event->getPassword());
 			}
-			);
+		);
 
 		$result = self::invokePrivate($this->manager, 'verifyPassword', ['password']);
 		$this->assertNull($result);
@@ -515,12 +519,13 @@ class ManagerTest extends \Test\TestCase {
 		]));
 
 		$this->eventDispatcher->expects($this->once())->method('dispatch')
-			->willReturnCallback(function($eventName, GenericEvent $event) {
-				$this->assertSame('OCP\PasswordPolicy::validate', $eventName);
-				$this->assertSame('password', $event->getSubject());
+			->willReturnCallback(function(Event $event) {
+				$this->assertInstanceOf(ValidatePasswordPolicyEvent::class, $event);
+				/** @var ValidatePasswordPolicyEvent $event */
+				$this->assertSame('password', $event->getPassword());
 				throw new HintException('message', 'password not accepted');
 			}
-			);
+		);
 
 		self::invokePrivate($this->manager, 'verifyPassword', ['password']);
 	}

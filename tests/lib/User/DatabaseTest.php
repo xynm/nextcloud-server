@@ -22,9 +22,12 @@
 
 namespace Test\User;
 use OC\HintException;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\EventDispatcher\GenericEvent;
+use OCP\EventDispatcher\Event;
+use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Security\Events\ValidatePasswordPolicyEvent;
+use PHPUnit\Framework\MockObject\MockObject;
 use OC\User\User;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class DatabaseTest
@@ -34,7 +37,7 @@ use OC\User\User;
 class DatabaseTest extends Backend {
 	/** @var array */
 	private $users;
-	/** @var EventDispatcherInterface|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IEventDispatcher|MockObject */
 	private $eventDispatcher;
 
 	public function getUser() {
@@ -46,7 +49,7 @@ class DatabaseTest extends Backend {
 	protected function setUp() {
 		parent::setUp();
 
-		$this->eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+		$this->eventDispatcher = $this->createMock(IEventDispatcher::class);
 
 		$this->backend=new \OC\User\Database($this->eventDispatcher);
 	}
@@ -65,11 +68,12 @@ class DatabaseTest extends Backend {
 		$user = $this->getUser();
 		$this->backend->createUser($user, 'pass1');
 
-		$this->eventDispatcher->expects($this->once())->method('dispatch')
+		$this->eventDispatcher->expects($this->once())->method('dispatchTyped')
 			->willReturnCallback(
-				function ($eventName, GenericEvent $event) {
-					$this->assertSame('OCP\PasswordPolicy::validate',  $eventName);
-					$this->assertSame('newpass', $event->getSubject());
+				function (Event $event) {
+					$this->assertInstanceOf(ValidatePasswordPolicyEvent::class, $event);
+					/** @var ValidatePasswordPolicyEvent $event */
+					$this->assertSame('newpass', $event->getPassword());
 				}
 			);
 
@@ -85,11 +89,12 @@ class DatabaseTest extends Backend {
 		$user = $this->getUser();
 		$this->backend->createUser($user, 'pass1');
 
-		$this->eventDispatcher->expects($this->once())->method('dispatch')
+		$this->eventDispatcher->expects($this->once())->method('dispatchTyped')
 			->willReturnCallback(
-				function ($eventName, GenericEvent $event) {
-					$this->assertSame('OCP\PasswordPolicy::validate', $eventName);
-					$this->assertSame('newpass', $event->getSubject());
+				function (Event $event) {
+					$this->assertInstanceOf(ValidatePasswordPolicyEvent::class, $event);
+					/** @var ValidatePasswordPolicyEvent $event */
+					$this->assertSame('newpass', $event->getPassword());
 					throw new HintException('password change failed', 'password change failed');
 				}
 			);
@@ -124,8 +129,8 @@ class DatabaseTest extends Backend {
 		$user2 = $this->getUser();
 		$this->backend->createUser($user2, 'pass1');
 
-		$user1Obj = new User($user1, $this->backend, $this->eventDispatcher);
-		$user2Obj = new User($user2, $this->backend, $this->eventDispatcher);
+		$user1Obj = new User($user1, $this->backend, $this->createMock(EventDispatcherInterface::class));
+		$user2Obj = new User($user2, $this->backend, $this->createMock(EventDispatcherInterface::class));
 		$emailAddr1 = "$user1@nextcloud.com";
 		$emailAddr2 = "$user2@nextcloud.com";
 
