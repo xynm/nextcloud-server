@@ -30,6 +30,7 @@
 namespace OCA\DAV\Connector\Sabre;
 
 use OC\Files\Node\Folder;
+use OCA\DAV\AppInfo\PluginManager;
 use OCA\DAV\Files\BrowserErrorPagePlugin;
 use OCP\Files\Mount\IMountManager;
 use OCP\IConfig;
@@ -39,6 +40,7 @@ use OCP\IPreview;
 use OCP\IRequest;
 use OCP\ITagManager;
 use OCP\IUserSession;
+use OCP\SabrePluginEvent;
 use Sabre\DAV\Auth\Plugin;
 
 class ServerFactory {
@@ -195,6 +197,18 @@ class ServerFactory {
 				);
 			}
 			$server->addPlugin(new \OCA\DAV\Connector\Sabre\CopyEtagHeaderPlugin());
+
+			// Load dav plugins from apps
+			$event = new SabrePluginEvent($server);
+			\OC::$server->getEventDispatcher()->dispatch($event);
+			$pluginManager = new PluginManager(
+				\OC::$server,
+				\OC::$server->getAppManager()
+			);
+			foreach ($pluginManager->getAppPlugins() as $appPlugin) {
+				$server->addPlugin($appPlugin);
+			}
+
 		}, 30); // priority 30: after auth (10) and acl(20), before lock(50) and handling the request
 		return $server;
 	}
