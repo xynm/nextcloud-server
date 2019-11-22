@@ -188,8 +188,10 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 				return $this->rmdir($path);
 			}
 			if (strpos($path, '__groupfolders') !== false) {
-				// DEBUG: log any attempt made to delete a file from a group folder and block the delete
-				throw new \Exception('Deleting object from objectstore ' . $this->getURN($stat['fileid']) . ' for ' . $path);
+				if (strpos($path, '__groupfolders/trash') === false && strpos($path, '__groupfolders/versions') === false) {
+					// DEBUG: log any attempt made to delete a file from a group folder and block the delete
+					throw new \Exception('Deleting object from groupfolder without going trough trash ' . $this->getURN($stat['fileid']) . ' for ' . $path);
+				}
 			}
 			try {
 				$this->objectStore->deleteObject($this->getURN($stat['fileid']));
