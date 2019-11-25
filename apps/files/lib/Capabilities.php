@@ -38,8 +38,12 @@ use OCP\IConfig;
  * @package OCA\Files
  */
 class Capabilities implements ICapability {
+
 	/** @var IConfig */
 	protected $config;
+
+	/** @var Manager */
+	protected $directEditingManager;
 
 	/**
 	 * Capabilities constructor.
@@ -66,7 +70,7 @@ class Capabilities implements ICapability {
 		];
 	}
 
-	private function getDirectEditingCapabilitites() {
+	private function getDirectEditingCapabilitites(): array {
 		$capabilities = [
 			'editors' => [],
 			'creators' => []
