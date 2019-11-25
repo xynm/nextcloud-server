@@ -118,26 +118,26 @@ class EntityTest extends \Test\TestCase {
 	}
 
 
-	/**
-	 * @expectedException \BadFunctionCallException
-	 */
+	
 	public function testCallShouldOnlyWorkForGetterSetter(){
+	    $this->expectException(\BadFunctionCallException::class);
+
 		$this->entity->something();
 	}
 
 
-	/**
-	 * @expectedException \BadFunctionCallException
-	 */
+	
 	public function testGetterShouldFailIfAttributeNotDefined(){
+	    $this->expectException(\BadFunctionCallException::class);
+
 		$this->entity->getTest();
 	}
 
-	/**
-	 * @expectedException \BadFunctionCallException
-	 */
+	
 
 	public function testSetterShouldFailIfAttributeNotDefined(){
+	    $this->expectException(\BadFunctionCallException::class);
+
 		$this->entity->setTest();
 	}
 
