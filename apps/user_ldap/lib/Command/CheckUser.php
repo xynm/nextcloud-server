@@ -3,8 +3,10 @@
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license AGPL-3.0
  *
@@ -18,7 +20,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -69,13 +71,13 @@ class CheckUser extends Command {
 					'ocName',
 					InputArgument::REQUIRED,
 					'the user name as used in Nextcloud'
-				     )
+					 )
 			->addOption(
 					'force',
 					null,
 					InputOption::VALUE_NONE,
 					'ignores disabled LDAP configuration'
-				     )
+					 )
 			->addOption(
 				'update',
 				null,
@@ -85,26 +87,28 @@ class CheckUser extends Command {
 		;
 	}
 
-	protected function execute(InputInterface $input, OutputInterface $output) {
+	protected function execute(InputInterface $input, OutputInterface $output): int {
 		try {
 			$uid = $input->getArgument('ocName');
 			$this->isAllowed($input->getOption('force'));
 			$this->confirmUserIsMapped($uid);
 			$exists = $this->backend->userExistsOnLDAP($uid);
-			if($exists === true) {
+			if ($exists === true) {
 				$output->writeln('The user is still available on LDAP.');
-				if($input->getOption('update')) {
+				if ($input->getOption('update')) {
 					$this->updateUser($uid, $output);
 				}
-				return;
+				return 0;
 			}
 
 			$this->dui->markUser($uid);
 			$output->writeln('The user does not exists on LDAP anymore.');
 			$output->writeln('Clean up the user\'s remnants by: ./occ user:delete "'
 				. $uid . '"');
+			return 0;
 		} catch (\Exception $e) {
 			$output->writeln('<error>' . $e->getMessage(). '</error>');
+			return 1;
 		}
 	}
 
@@ -129,7 +133,7 @@ class CheckUser extends Command {
 	 * @return true
 	 */
 	protected function isAllowed($force) {
-		if($this->helper->haveDisabledConfigurations() && !$force) {
+		if ($this->helper->haveDisabledConfigurations() && !$force) {
 			throw new \Exception('Cannot check user existence, because '
 				. 'disabled LDAP configurations are present.');
 		}
@@ -147,7 +151,7 @@ class CheckUser extends Command {
 			$attrs = $access->userManager->getAttributes();
 			$user = $access->userManager->get($uid);
 			$avatarAttributes = $access->getConnection()->resolveRule('avatar');
-			$result = $access->search('objectclass=*', [$user->getDN()], $attrs, 1, 0);
+			$result = $access->search('objectclass=*', $user->getDN(), $attrs, 1, 0);
 			foreach ($result[0] as $attribute => $valueSet) {
 				$output->writeln('  ' . $attribute . ': ');
 				foreach ($valueSet as $value) {
@@ -162,5 +166,4 @@ class CheckUser extends Command {
 			$output->writeln('<error>Error while trying to lookup and update attributes from LDAP</error>');
 		}
 	}
-
 }

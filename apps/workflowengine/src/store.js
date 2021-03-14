@@ -24,7 +24,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import axios from '@nextcloud/axios'
 import { getApiUrl } from './helpers/api'
-import confirmPassword from 'nextcloud-password-confirmation'
+import confirmPassword from '@nextcloud/password-confirmation'
 import { loadState } from '@nextcloud/initial-state'
 
 Vue.use(Vuex)
@@ -33,11 +33,12 @@ const store = new Vuex.Store({
 	state: {
 		rules: [],
 		scope: loadState('workflowengine', 'scope'),
+		appstoreEnabled: loadState('workflowengine', 'appstoreenabled'),
 		operations: loadState('workflowengine', 'operators'),
 
 		plugins: Vue.observable({
 			checks: {},
-			operators: {}
+			operators: {},
 		}),
 
 		entities: loadState('workflowengine', 'entities'),
@@ -46,10 +47,10 @@ const store = new Vuex.Store({
 				return {
 					id: `${entity.id}::${event.eventName}`,
 					entity,
-					...event
+					...event,
 				}
 			})).flat(),
-		checks: loadState('workflowengine', 'checks')
+		checks: loadState('workflowengine', 'checks'),
 	},
 	mutations: {
 		addRule(state, rule) {
@@ -74,7 +75,7 @@ const store = new Vuex.Store({
 			if (typeof state.operations[plugin.id] !== 'undefined') {
 				Vue.set(state.operations, plugin.id, plugin)
 			}
-		}
+		},
 	},
 	actions: {
 		async fetchRules(context) {
@@ -98,21 +99,25 @@ const store = new Vuex.Store({
 				entity: entity ? entity.id : rule.fixedEntity,
 				events,
 				name: '', // unused in the new ui, there for legacy reasons
-				checks: [],
-				operation: rule.operation || ''
+				checks: [
+					{ class: null, operator: null, value: '' },
+				],
+				operation: rule.operation || '',
 			})
 		},
 		updateRule(context, rule) {
 			context.commit('updateRule', {
 				...rule,
-				events: typeof rule.events === 'string' ? JSON.parse(rule.events) : rule.events
+				events: typeof rule.events === 'string' ? JSON.parse(rule.events) : rule.events,
 			})
 		},
 		removeRule(context, rule) {
 			context.commit('removeRule', rule)
 		},
 		async pushUpdateRule(context, rule) {
-			await confirmPassword()
+			if (context.state.scope === 0) {
+				await confirmPassword()
+			}
 			let result
 			if (rule.id < 0) {
 				result = await axios.post(getApiUrl(''), rule)
@@ -130,11 +135,11 @@ const store = new Vuex.Store({
 		setValid(context, { rule, valid }) {
 			rule.valid = valid
 			context.commit('updateRule', rule)
-		}
+		},
 	},
 	getters: {
 		getRules(state) {
-			return state.rules.sort((rule1, rule2) => {
+			return state.rules.filter((rule) => typeof state.operations[rule.class] !== 'undefined').sort((rule1, rule2) => {
 				return rule1.id - rule2.id || rule2.class - rule1.class
 			})
 		},
@@ -164,8 +169,8 @@ const store = new Vuex.Store({
 						return obj
 					}, {})
 			}
-		}
-	}
+		},
+	},
 })
 
 export default store

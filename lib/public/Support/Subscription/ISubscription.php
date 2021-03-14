@@ -1,7 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 /**
+ *
+ *
+ * @author Julius Härtl <jus@bitgrid.net>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
  * @license GNU AGPL version 3 or any later version
@@ -17,7 +21,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,4 +45,11 @@ interface ISubscription {
 	 * @since 17.0.0
 	 */
 	public function hasExtendedSupport(): bool;
+
+	/**
+	 * Indicates if a hard user limit is reached and no new users should be created
+	 *
+	 * @since 21.0.0
+	 */
+	public function isHardUserLimitReached(): bool;
 }

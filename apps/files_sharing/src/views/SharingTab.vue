@@ -21,7 +21,7 @@
   -->
 
 <template>
-	<Tab :icon="icon" :name="name" :class="{ 'icon-loading': loading }">
+	<div :class="{ 'icon-loading': loading }">
 		<!-- error message -->
 		<div v-if="error" class="emptycontent">
 			<div class="icon icon-error" />
@@ -33,7 +33,7 @@
 			<!-- shared with me information -->
 			<SharingEntrySimple v-if="isSharedWithMe" v-bind="sharedWithMe" class="sharing-entry__reshare">
 				<template #avatar>
-					<Avatar #avatar
+					<Avatar
 						:user="sharedWithMe.user"
 						:display-name="sharedWithMe.displayName"
 						class="sharing-entry__avatar"
@@ -61,6 +61,9 @@
 				:shares="shares"
 				:file-info="fileInfo" />
 
+			<!-- inherited shares -->
+			<SharingInherited v-if="canReshare && !loading" :file-info="fileInfo" />
+
 			<!-- internal link copy -->
 			<SharingEntryInternal :file-info="fileInfo" />
 
@@ -78,16 +81,16 @@
 				<component :is="section($refs['section-'+index], fileInfo)" :file-info="fileInfo" />
 			</div>
 		</template>
-	</Tab>
+	</div>
 </template>
 
 <script>
-import { generateOcsUrl } from '@nextcloud/router'
-import Tab from 'nextcloud-vue/dist/Components/AppSidebarTab'
-import Avatar from 'nextcloud-vue/dist/Components/Avatar'
-import axios from '@nextcloud/axios'
 import { CollectionList } from 'nextcloud-vue-collections'
+import { generateOcsUrl } from '@nextcloud/router'
+import Avatar from '@nextcloud/vue/dist/Components/Avatar'
+import axios from '@nextcloud/axios'
 
+import Config from '../services/ConfigService'
 import { shareWithTitle } from '../utils/SharedWithMe'
 import Share from '../models/Share'
 import ShareTypes from '../mixins/ShareTypes'
@@ -95,6 +98,7 @@ import SharingEntryInternal from '../components/SharingEntryInternal'
 import SharingEntrySimple from '../components/SharingEntrySimple'
 import SharingInput from '../components/SharingInput'
 
+import SharingInherited from './SharingInherited'
 import SharingLinkList from './SharingLinkList'
 import SharingList from './SharingList'
 
@@ -106,59 +110,35 @@ export default {
 		CollectionList,
 		SharingEntryInternal,
 		SharingEntrySimple,
+		SharingInherited,
 		SharingInput,
 		SharingLinkList,
 		SharingList,
-		Tab
 	},
 
 	mixins: [ShareTypes],
 
-	props: {
-		fileInfo: {
-			type: Object,
-			default: () => {},
-			required: true
-		}
-	},
-
 	data() {
 		return {
+			config: new Config(),
+
 			error: '',
 			expirationInterval: null,
-			icon: 'icon-share',
 			loading: true,
-			name: t('files_sharing', 'Sharing'),
+
+			fileInfo: null,
+
 			// reshare Share object
 			reshare: null,
 			sharedWithMe: {},
 			shares: [],
 			linkShares: [],
-			sections: OCA.Sharing.ShareTabSections.getSections()
+
+			sections: OCA.Sharing.ShareTabSections.getSections(),
 		}
 	},
 
 	computed: {
-		/**
-		 * Needed to differenciate the tabs
-		 * pulled from the AppSidebarTab component
-		 *
-		 * @returns {string}
-		 */
-		id() {
-			return this.name.toLowerCase().replace(/ /g, '-')
-		},
-
-		/**
-		 * Returns the current active tab
-		 * needed because AppSidebarTab also uses $parent.activeTab
-		 *
-		 * @returns {string}
-		 */
-		activeTab() {
-			return this.$parent.activeTab
-		},
-
 		/**
 		 * Is this share shared with me?
 		 *
@@ -170,22 +150,21 @@ export default {
 
 		canReshare() {
 			return !!(this.fileInfo.permissions & OC.PERMISSION_SHARE)
-				|| !!(this.reshare && this.reshare.hasSharePermission)
-		}
-	},
-
-	watch: {
-		fileInfo() {
-			this.resetState()
-			this.getShares()
-		}
-	},
-
-	beforeMount() {
-		this.getShares()
+				|| !!(this.reshare && this.reshare.hasSharePermission && this.config.isResharingAllowed)
+		},
 	},
 
 	methods: {
+		/**
+		 * Update current fileInfo and fetch new data
+		 * @param {Object} fileInfo the current file FileInfo
+		 */
+		async update(fileInfo) {
+			this.fileInfo = fileInfo
+			this.resetState()
+			this.getShares()
+		},
+
 		/**
 		 * Get the existing shares infos
 		 */
@@ -204,15 +183,15 @@ export default {
 					params: {
 						format,
 						path,
-						reshares: true
-					}
+						reshares: true,
+					},
 				})
 				const fetchSharedWithMe = axios.get(shareUrl, {
 					params: {
 						format,
 						path,
-						shared_with_me: true
-					}
+						shared_with_me: true,
+					},
 				})
 
 				// wait for data
@@ -238,6 +217,7 @@ export default {
 			this.error = ''
 			this.sharedWithMe = {}
 			this.shares = []
+			this.linkShares = []
 		},
 
 		/**
@@ -249,7 +229,7 @@ export default {
 		updateExpirationSubtitle(share) {
 			const expiration = moment(share.expireDate).unix()
 			this.$set(this.sharedWithMe, 'subtitle', t('files_sharing', 'Expires {relativetime}', {
-				relativetime: OC.Util.relativeModifiedDate(expiration * 1000)
+				relativetime: OC.Util.relativeModifiedDate(expiration * 1000),
 			}))
 
 			// share have expired
@@ -276,6 +256,9 @@ export default {
 
 				this.linkShares = shares.filter(share => share.type === this.SHARE_TYPES.SHARE_TYPE_LINK || share.type === this.SHARE_TYPES.SHARE_TYPE_EMAIL)
 				this.shares = shares.filter(share => share.type !== this.SHARE_TYPES.SHARE_TYPE_LINK && share.type !== this.SHARE_TYPES.SHARE_TYPE_EMAIL)
+
+				console.debug('Processed', this.linkShares.length, 'link share(s)')
+				console.debug('Processed', this.shares.length, 'share(s)')
 			}
 		},
 
@@ -296,7 +279,7 @@ export default {
 				this.sharedWithMe = {
 					displayName,
 					title,
-					user
+					user,
 				}
 				this.reshare = share
 
@@ -324,11 +307,7 @@ export default {
 			} else {
 				this.shares.unshift(share)
 			}
-		}
-	}
+		},
+	},
 }
 </script>
-
-<style lang="scss" scoped>
-
-</style>

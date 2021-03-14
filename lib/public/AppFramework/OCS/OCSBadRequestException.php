@@ -17,7 +17,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +29,6 @@ use OCP\AppFramework\Http;
 /**
  * Class OCSBadRequestException
  *
- * @package OCP\AppFramework
  * @since 9.1.0
  */
 class OCSBadRequestException extends OCSException {
@@ -43,5 +42,4 @@ class OCSBadRequestException extends OCSException {
 	public function __construct($message = '', Exception $previous = null) {
 		parent::__construct($message, Http::STATUS_BAD_REQUEST, $previous);
 	}
-
 }

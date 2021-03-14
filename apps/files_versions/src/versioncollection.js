@@ -12,7 +12,7 @@
 	/**
 	 * @memberof OCA.Versions
 	 */
-	var VersionCollection = OC.Backbone.Collection.extend({
+	const VersionCollection = OC.Backbone.Collection.extend({
 		model: OCA.Versions.VersionModel,
 		sync: OC.Backbone.davSync,
 
@@ -25,44 +25,44 @@
 
 		_client: null,
 
-		setFileInfo: function(fileInfo) {
+		setFileInfo(fileInfo) {
 			this._fileInfo = fileInfo
 		},
 
-		getFileInfo: function() {
+		getFileInfo() {
 			return this._fileInfo
 		},
 
-		setCurrentUser: function(user) {
+		setCurrentUser(user) {
 			this._currentUser = user
 		},
 
-		getCurrentUser: function() {
+		getCurrentUser() {
 			return this._currentUser || OC.getCurrentUser().uid
 		},
 
-		setClient: function(client) {
+		setClient(client) {
 			this._client = client
 		},
 
-		getClient: function() {
+		getClient() {
 			return this._client || new OC.Files.Client({
 				host: OC.getHost(),
 				root: OC.linkToRemoteBase('dav') + '/versions/' + this.getCurrentUser(),
-				useHTTPS: OC.getProtocol() === 'https'
+				useHTTPS: OC.getProtocol() === 'https',
 			})
 		},
 
-		url: function() {
+		url() {
 			return OC.linkToRemoteBase('dav') + '/versions/' + this.getCurrentUser() + '/versions/' + this._fileInfo.get('id')
 		},
 
-		parse: function(result) {
-			var fullPath = this._fileInfo.getFullPath()
-			var fileId = this._fileInfo.get('id')
-			var name = this._fileInfo.get('name')
-			var user = this.getCurrentUser()
-			var client = this.getClient()
+		parse(result) {
+			const fullPath = this._fileInfo.getFullPath()
+			const fileId = this._fileInfo.get('id')
+			const name = this._fileInfo.get('name')
+			const user = this.getCurrentUser()
+			const client = this.getClient()
 			return _.map(result, function(version) {
 				version.fullPath = fullPath
 				version.fileId = fileId
@@ -74,7 +74,7 @@
 				version.client = client
 				return version
 			})
-		}
+		},
 	})
 
 	OCA.Versions = OCA.Versions || {}

@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2019, Joas Schilling <coding@schilljs.com>
  *
@@ -18,7 +20,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -75,5 +77,4 @@ class SetAcceptedStatus implements IRepairStep {
 		$appVersion = $this->config->getAppValue('files_sharing', 'installed_version', '0.0.0');
 		return version_compare($appVersion, '1.10.1', '<');
 	}
-
 }

@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2019 Arthur Schiwon <blizzz@arthur-schiwon.de>
  *
@@ -18,7 +20,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +36,6 @@ namespace OCP\WorkflowEngine;
  * because the action is not connected to the event. This mechanism suits
  * special cases.
  *
- * @package OCP\WorkflowEngine
  * @since 18.0.0
  */
 interface ISpecificOperation extends IOperation {

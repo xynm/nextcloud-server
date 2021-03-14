@@ -27,21 +27,27 @@ namespace lib\Authentication\Login;
 
 use OC\Authentication\Login\LoggedInCheckCommand;
 use OC\Core\Controller\LoginController;
-use OCP\ILogger;
+use OCP\EventDispatcher\IEventDispatcher;
 use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
 
 class LoggedInCheckCommandTest extends ALoginCommandTest {
 
-	/** @var ILogger|MockObject */
+	/** @var LoggerInterface|MockObject */
 	private $logger;
 
-	protected function setUp() {
+	/** @var IEventDispatcher|MockObject */
+	private $dispatcher;
+
+	protected function setUp(): void {
 		parent::setUp();
 
-		$this->logger = $this->createMock(ILogger::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
+		$this->dispatcher = $this->createMock(IEventDispatcher::class);
 
 		$this->cmd = new LoggedInCheckCommand(
-			$this->logger
+			$this->logger,
+			$this->dispatcher
 		);
 	}
 
@@ -63,5 +69,4 @@ class LoggedInCheckCommandTest extends ALoginCommandTest {
 		$this->assertFalse($result->isSuccess());
 		$this->assertSame(LoginController::LOGIN_MSG_INVALIDPASSWORD, $result->getErrorMessage());
 	}
-
 }

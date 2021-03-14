@@ -1,9 +1,12 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
  * @author Joas Schilling <coding@schilljs.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license AGPL-3.0
  *
@@ -17,7 +20,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -26,7 +29,6 @@ namespace OCP\Notification;
 /**
  * Interface IManager
  *
- * @package OCP\Notification
  * @since 9.0.0
  */
 interface IManager extends IApp, INotifier {
@@ -83,4 +85,26 @@ interface IManager extends IApp, INotifier {
 	 * @since 14.0.0
 	 */
 	public function isPreparingPushNotification(): bool;
+
+	/**
+	 * @since 18.0.0
+	 */
+	public function dismissNotification(INotification $notification): void;
+
+	/**
+	 * Start deferring notifications until `flush()` is called
+	 *
+	 * The calling app should only "flush" when it got returned true on the defer call,
+	 * otherwise another app is deferring the sending already.
+	 * @return bool
+	 * @since 20.0.0
+	 */
+	public function defer(): bool;
+
+	/**
+	 * Send all deferred notifications that have been stored since `defer()` was called
+	 *
+	 * @since 20.0.0
+	 */
+	public function flush(): void;
 }

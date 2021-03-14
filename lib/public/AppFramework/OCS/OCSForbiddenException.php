@@ -17,7 +17,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +29,6 @@ use OCP\AppFramework\Http;
 /**
  * Class OCSForbiddenException
  *
- * @package OCP\AppFramework
  * @since 9.1.0
  */
 class OCSForbiddenException extends OCSException {

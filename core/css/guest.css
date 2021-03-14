@@ -25,9 +25,10 @@ body {
 	text-align: center;
 	background-color: #0082c9;
 	background-image: url('../img/background.png?v=2');
+	background-image: url('../img/background.png?v=2'), linear-gradient(40deg, #0082c9 0%, rgba(28,175,255,1) 100%);
 	background-position: 50% 50%;
-	background-repeat: no-repeat;
-	background-size: cover;
+	background-repeat: repeat;
+	background-size: 275px, contain;
 	background-attachment: fixed; /* fix background gradient */
 	min-height: 100%; /* fix sticky footer */
 	height: auto;
@@ -98,7 +99,8 @@ body {
 }
 
 .wrapper {
-	max-width: 100%;
+	width: 100%;
+	max-width: 700px;
 	margin-top: 10vh;
 }
 
@@ -154,7 +156,7 @@ form #datadirField legend {
 }
 
 #alternative-logins {
-	margin: 30px 15px 20px;
+	margin: auto;
 	display: block;
 	min-width: 260px;
 	max-width: 400px;
@@ -191,7 +193,7 @@ form #datadirField legend {
 		margin-top: 0;
 	}
 	#alternative-logins {
-		margin: 30px 15px 10px;
+		margin: auto;
 	}
 }
 
@@ -392,7 +394,6 @@ input[type='checkbox'].checkbox--white:checked + label:before {
 .strengthify-wrapper {
 	display: inline-block;
 	position: relative;
-	left: 5px;
 	top: -20px;
 	width: 269px;
 	border-radius: 0 0 3px 3px;
@@ -469,6 +470,10 @@ form .warning input[type='checkbox']+label {
 	color: #fff !important;
 }
 
+.body-login-container.two-factor {
+	max-width: 290px;
+	margin: 15px auto 0;
+}
 .two-factor-provider {
 	display: flex;
 	border-radius: 3px; /* --border-radius */
@@ -524,22 +529,24 @@ form .warning input[type='checkbox']+label {
 #remember_login {
 	margin: 18px 5px 0 16px !important;
 }
-.remember-login-container,
 .lost-password-container {
 	display: inline-block;
 	margin: 10px 0;
 	text-align: center;
 	width: 100%;
-	text-shadow: 0 0 2px rgba(0, 0, 0, .4); /* better readability on bright background */
 }
-.lost-password-container #lost-password,
-.lost-password-container #lost-password-back {
+#lost-password,
+#lost-password-back,
+#reset-password-wrapper + a {
 	display: inline-block;
-	font-weight: normal;
+	font-weight: normal !important;
 	padding: 12px;
-	margin-top: -6px;
 	color: #fff;
 	cursor: pointer;
+	text-shadow: 0 0 2px rgba(0, 0, 0, .4); /* better readability on bright background */
+}
+#lost-password {
+	margin-top: -6px;
 }
 #forgot-password {
 	padding: 11px;
@@ -639,6 +646,11 @@ form #selectDbType label span {
 }
 .groupbottom input[type=submit] {
 	box-shadow: none !important;
+}
+
+#install-recommended-apps + label span {
+	display: inline-block;
+	opacity: .7;
 }
 
 /* Errors */
@@ -897,8 +909,8 @@ footer .info .entity-name {
 label.infield,
 .hidden-visually {
 	position: absolute;
-	left:-10000px;
-	top: auto;
+	left: -10000px;
+	top: -10000px;
 	width: 1px;
 	height: 1px;
 	overflow: hidden;

@@ -12,14 +12,16 @@ import _ from 'underscore'
 import $ from 'jquery'
 import DOMPurify from 'dompurify'
 import Handlebars from 'handlebars'
+import identity from 'lodash/fp/identity'
 import escapeHTML from 'escape-html'
+import { generateFilePath } from '@nextcloud/router'
 
 import OC from './index'
 import {
 	getAppTranslations,
 	hasAppTranslations,
 	registerAppTranslations,
-	unregisterAppTranslations
+	unregisterAppTranslations,
 } from './l10n-registry'
 
 /**
@@ -37,18 +39,18 @@ const L10n = {
 	 * the translations are loaded
 	 * @returns {Promise} promise
 	 */
-	load: function(appName, callback) {
+	load(appName, callback) {
 		// already available ?
 		if (hasAppTranslations(appName) || OC.getLocale() === 'en') {
-			var deferred = $.Deferred()
-			var promise = deferred.promise()
+			const deferred = $.Deferred()
+			const promise = deferred.promise()
 			promise.then(callback)
 			deferred.resolve()
 			return promise
 		}
 
-		var self = this
-		var url = OC.filePath(appName, 'l10n', OC.getLocale() + '.json')
+		const self = this
+		const url = generateFilePath(appName, 'l10n', OC.getLocale() + '.json')
 
 		// load JSON translation bundle per AJAX
 		return $.get(url)
@@ -67,7 +69,7 @@ const L10n = {
 	 * @param {String} appName name of the app
 	 * @param {Object<String,String>} bundle bundle
 	 */
-	register: function(appName, bundle) {
+	register(appName, bundle) {
 		registerAppTranslations(appName, bundle, this._getPlural)
 	},
 
@@ -84,45 +86,46 @@ const L10n = {
 	 * @param {number} [count] number to replace %n with
 	 * @param {array} [options] options array
 	 * @param {bool} [options.escape=true] enable/disable auto escape of placeholders (by default enabled)
+	 * @param {bool} [options.sanitize=true] enable/disable sanitization (by default enabled)
 	 * @returns {string}
 	 */
-	translate: function(app, text, vars, count, options) {
-		var defaultOptions = {
-			escape: true
+	translate(app, text, vars, count, options) {
+		const defaultOptions = {
+			escape: true,
+			sanitize: true,
 		}
-		var allOptions = options || {}
+		const allOptions = options || {}
 		_.defaults(allOptions, defaultOptions)
+
+		const optSanitize = allOptions.sanitize ? DOMPurify.sanitize : identity
+		const optEscape = allOptions.escape ? escapeHTML : identity
 
 		// TODO: cache this function to avoid inline recreation
 		// of the same function over and over again in case
 		// translate() is used in a loop
-		var _build = function(text, vars, count) {
+		const _build = function(text, vars, count) {
 			return text.replace(/%n/g, count).replace(/{([^{}]*)}/g,
 				function(a, b) {
-					var r = vars[b]
+					const r = vars[b]
 					if (typeof r === 'string' || typeof r === 'number') {
-						if (allOptions.escape) {
-							return DOMPurify.sanitize(escapeHTML(r))
-						} else {
-							return DOMPurify.sanitize(r)
-						}
+						return optSanitize(optEscape(r))
 					} else {
-						return DOMPurify.sanitize(a)
+						return optSanitize(a)
 					}
 				}
 			)
 		}
-		var translation = text
-		var bundle = getAppTranslations(app)
-		var value = bundle.translations[text]
+		let translation = text
+		const bundle = getAppTranslations(app)
+		const value = bundle.translations[text]
 		if (typeof (value) !== 'undefined') {
 			translation = value
 		}
 
 		if (typeof vars === 'object' || count !== undefined) {
-			return DOMPurify.sanitize(_build(translation, vars, count))
+			return optSanitize(_build(translation, vars, count))
 		} else {
-			return DOMPurify.sanitize(translation)
+			return optSanitize(translation)
 		}
 	},
 
@@ -137,14 +140,14 @@ const L10n = {
 	 * @param {bool} [options.escape=true] enable/disable auto escape of placeholders (by default enabled)
 	 * @returns {string} Translated string
 	 */
-	translatePlural: function(app, textSingular, textPlural, count, vars, options) {
+	translatePlural(app, textSingular, textPlural, count, vars, options) {
 		const identifier = '_' + textSingular + '_::_' + textPlural + '_'
 		const bundle = getAppTranslations(app)
 		const value = bundle.translations[identifier]
 		if (typeof (value) !== 'undefined') {
-			var translation = value
+			const translation = value
 			if ($.isArray(translation)) {
-				var plural = bundle.pluralFunction(count)
+				const plural = bundle.pluralFunction(count)
 				return this.translate(app, translation[plural], vars, count, options)
 			}
 		}
@@ -163,9 +166,9 @@ const L10n = {
 	 * @returns {number}
 	 * @private
 	 */
-	_getPlural: function(number) {
-		var language = OC.getLanguage()
-		if (language === 'pt_BR') {
+	_getPlural(number) {
+		let language = OC.getLanguage()
+		if (language === 'pt-BR') {
 			// temporary set a locale for brazilian
 			language = 'xbr'
 		}
@@ -175,7 +178,7 @@ const L10n = {
 		}
 
 		if (language.length > 3) {
-			language = language.substring(0, language.lastIndexOf('_'))
+			language = language.substring(0, language.lastIndexOf('-'))
 		}
 
 		/*
@@ -315,27 +318,17 @@ const L10n = {
 		default:
 			return 0
 		}
-	}
+	},
 }
 
 export default L10n
-
-/**
- * Returns the user's locale as a BCP 47 compliant language tag
- *
- * @returns {String} locale string
- */
-export const getCanonicalLocale = () => {
-	const locale = getLocale()
-	return typeof locale === 'string' ? locale.replace(/_/g, '-') : locale
-}
 
 /**
  * Returns the user's locale
  *
  * @returns {String} locale string
  */
-export const getLocale = () => $('html').data('locale')
+export const getLocale = () => $('html').data('locale') ?? 'en'
 
 /**
  * Returns the user's language

@@ -1,10 +1,10 @@
 <?php
-
 /**
  * @copyright Copyright (c) 2016 Robin Appelman <robin@icewind.nl>
  *
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
  * @author Robin Appelman <robin@icewind.nl>
- * @author John Molakvoæ <skjnldsv@protonmail.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -19,7 +19,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,10 +82,11 @@ class ListCommand extends Base {
 			);
 	}
 
-	protected function execute(InputInterface $input, OutputInterface $output) {
+	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$users = $this->userManager->search('', (int) $input->getOption('limit'), (int) $input->getOption('offset'));
 
 		$this->writeArrayInOutputFormat($input, $output, $this->formatUsers($users, (bool)$input->getOption('info')));
+		return 0;
 	}
 
 	/**
@@ -97,7 +98,7 @@ class ListCommand extends Base {
 		$keys = array_map(function (IUser $user) {
 			return $user->getUID();
 		}, $users);
-	
+
 		$values = array_map(function (IUser $user) use ($detailed) {
 			if ($detailed) {
 				$groups = $this->groupManager->getUserGroupIds($user);

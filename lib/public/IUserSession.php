@@ -4,10 +4,12 @@
  *
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Greta Doci <gretadoci@gmail.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <robin@icewind.nl>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license AGPL-3.0
  *
@@ -21,7 +23,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -44,12 +46,12 @@ interface IUserSession {
 	/**
 	 * Do a user login
 	 *
-	 * @param string $user the username
+	 * @param string $uid the username
 	 * @param string $password the password
 	 * @return bool true if successful
 	 * @since 6.0.0
 	 */
-	public function login($user, $password);
+	public function login($uid, $password);
 
 	/**
 	 * Logs the user out including all the session data

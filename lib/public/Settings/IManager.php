@@ -3,6 +3,8 @@
  * @copyright Copyright (c) 2016 Arthur Schiwon <blizzz@arthur-schiwon.de>
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  *
  * @license GNU AGPL version 3 or any later version
@@ -18,7 +20,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,22 +33,22 @@ interface IManager {
 	/**
 	 * @since 9.1.0
 	 */
-	const KEY_ADMIN_SETTINGS = 'admin';
+	public const KEY_ADMIN_SETTINGS = 'admin';
 
 	/**
 	 * @since 9.1.0
 	 */
-	const KEY_ADMIN_SECTION  = 'admin-section';
+	public const KEY_ADMIN_SECTION = 'admin-section';
 
 	/**
 	 * @since 13.0.0
 	 */
-	const KEY_PERSONAL_SETTINGS = 'personal';
+	public const KEY_PERSONAL_SETTINGS = 'personal';
 
 	/**
 	 * @since 13.0.0
 	 */
-	const KEY_PERSONAL_SECTION  = 'personal-section';
+	public const KEY_PERSONAL_SECTION = 'personal-section';
 
 	/**
 	 * @param string $type 'admin' or 'personal'

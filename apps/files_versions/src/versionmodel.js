@@ -12,13 +12,13 @@
 	/**
 	 * @memberof OCA.Versions
 	 */
-	var VersionModel = OC.Backbone.Model.extend({
+	const VersionModel = OC.Backbone.Model.extend({
 		sync: OC.Backbone.davSync,
 
 		davProperties: {
-			'size': '{DAV:}getcontentlength',
-			'mimetype': '{DAV:}getcontenttype',
-			'timestamp': '{DAV:}getlastmodified'
+			size: '{DAV:}getcontentlength',
+			mimetype: '{DAV:}getcontenttype',
+			timestamp: '{DAV:}getlastmodified',
 		},
 
 		/**
@@ -27,11 +27,11 @@
 		 * @param {Object} [options] options
 		 * @returns {Promise}
 		 */
-		revert: function(options) {
+		revert(options) {
 			options = options ? _.clone(options) : {}
-			var model = this
+			const model = this
 
-			var client = this.get('client')
+			const client = this.get('client')
 
 			return client.move('/versions/' + this.get('fileId') + '/' + this.get('id'), '/restore/target', true)
 				.done(function() {
@@ -48,22 +48,22 @@
 				})
 		},
 
-		getFullPath: function() {
+		getFullPath() {
 			return this.get('fullPath')
 		},
 
-		getPreviewUrl: function() {
-			var url = OC.generateUrl('/apps/files_versions/preview')
-			var params = {
+		getPreviewUrl() {
+			const url = OC.generateUrl('/apps/files_versions/preview')
+			const params = {
 				file: this.get('fullPath'),
-				version: this.get('id')
+				version: this.get('id'),
 			}
 			return url + '?' + OC.buildQueryString(params)
 		},
 
-		getDownloadUrl: function() {
+		getDownloadUrl() {
 			return OC.linkToRemoteBase('dav') + '/versions/' + this.get('user') + '/versions/' + this.get('fileId') + '/' + this.get('id')
-		}
+		},
 	})
 
 	OCA.Versions = OCA.Versions || {}

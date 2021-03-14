@@ -51,36 +51,42 @@
 </template>
 
 <script>
-import { Multiselect } from 'nextcloud-vue/dist/Components/Multiselect'
+import Multiselect from '@nextcloud/vue/dist/Components/Multiselect'
 import valueMixin from './../../mixins/valueMixin'
+import { imagePath } from '@nextcloud/router'
 
 export default {
 	name: 'FileMimeType',
 	components: {
-		Multiselect
+		Multiselect,
 	},
 	mixins: [
-		valueMixin
+		valueMixin,
 	],
 	data() {
 		return {
 			predefinedTypes: [
 				{
+					icon: 'icon-folder',
+					label: t('workflowengine', 'Folder'),
+					pattern: 'httpd/unix-directory',
+				},
+				{
 					icon: 'icon-picture',
 					label: t('workflowengine', 'Images'),
-					pattern: '/image\\/.*/'
+					pattern: '/image\\/.*/',
 				},
 				{
-					iconUrl: OC.imagePath('core', 'filetypes/x-office-document'),
+					iconUrl: imagePath('core', 'filetypes/x-office-document'),
 					label: t('workflowengine', 'Office documents'),
-					pattern: '/(vnd\\.(ms-|openxmlformats-).*))$/'
+					pattern: '/(vnd\\.(ms-|openxmlformats-|oasis\\.opendocument).*)$/',
 				},
 				{
-					iconUrl: OC.imagePath('core', 'filetypes/application-pdf'),
+					iconUrl: imagePath('core', 'filetypes/application-pdf'),
 					label: t('workflowengine', 'PDF documents'),
-					pattern: 'application/pdf'
-				}
-			]
+					pattern: 'application/pdf',
+				},
+			],
 		}
 	},
 	computed: {
@@ -98,7 +104,7 @@ export default {
 			return {
 				icon: 'icon-settings-dark',
 				label: t('workflowengine', 'Custom mimetype'),
-				pattern: ''
+				pattern: '',
 			}
 		},
 		currentValue() {
@@ -109,18 +115,17 @@ export default {
 			return {
 				icon: 'icon-settings-dark',
 				label: t('workflowengine', 'Custom mimetype'),
-				pattern: this.newValue
+				pattern: this.newValue,
 			}
-		}
+		},
 	},
 	methods: {
 		validateRegex(string) {
-			var regexRegex = /^\/(.*)\/([gui]{0,3})$/
-			var result = regexRegex.exec(string)
+			const regexRegex = /^\/(.*)\/([gui]{0,3})$/
+			const result = regexRegex.exec(string)
 			return result !== null
 		},
 		setValue(value) {
-			// TODO: check if value requires a regex and set the check operator according to that
 			if (value !== null) {
 				this.newValue = value.pattern
 				this.$emit('input', this.newValue)
@@ -129,8 +134,8 @@ export default {
 		updateCustom(event) {
 			this.newValue = event.target.value
 			this.$emit('input', this.newValue)
-		}
-	}
+		},
+	},
 }
 </script>
 <style scoped>

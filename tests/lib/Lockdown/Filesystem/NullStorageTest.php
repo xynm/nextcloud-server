@@ -31,12 +31,12 @@ use OC\Lockdown\Filesystem\NullStorage;
 use OCP\Files\Storage;
 use Test\TestCase;
 
-class NullStorageTest extends TestCase  {
+class NullStorageTest extends TestCase {
 
 	/** @var NullStorage */
 	private $storage;
 
-	public function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->storage = new NullStorage([]);

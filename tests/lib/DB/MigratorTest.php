@@ -9,10 +9,13 @@
 
 namespace Test\DB;
 
-use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
+use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaConfig;
+use OC\DB\SchemaWrapper;
 use OCP\IConfig;
 
 /**
@@ -44,11 +47,11 @@ class MigratorTest extends \Test\TestCase {
 	/** @var string */
 	private $tableNameTmp;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->config = \OC::$server->getConfig();
-		$this->connection = \OC::$server->getDatabaseConnection();
+		$this->connection = \OC::$server->get(\OC\DB\Connection::class);
 		if ($this->connection->getDatabasePlatform() instanceof OraclePlatform) {
 			$this->markTestSkipped('DB migration tests are not supported on OCI');
 		}
@@ -61,15 +64,17 @@ class MigratorTest extends \Test\TestCase {
 		return strtolower($this->getUniqueID($this->config->getSystemValue('dbtableprefix', 'oc_') . 'test_'));
 	}
 
-	protected function tearDown() {
+	protected function tearDown(): void {
 		// Try to delete if exists (IF EXISTS NOT SUPPORTED IN ORACLE)
 		try {
 			$this->connection->exec('DROP TABLE ' . $this->connection->quoteIdentifier($this->tableNameTmp));
-		} catch (\Doctrine\DBAL\DBALException $e) {}
+		} catch (Exception $e) {
+		}
 
 		try {
 			$this->connection->exec('DROP TABLE ' . $this->connection->quoteIdentifier($this->tableName));
-		} catch (\Doctrine\DBAL\DBALException $e) {}
+		} catch (Exception $e) {
+		}
 		parent::tearDown();
 	}
 
@@ -77,20 +82,40 @@ class MigratorTest extends \Test\TestCase {
 	 * @return \Doctrine\DBAL\Schema\Schema[]
 	 */
 	private function getDuplicateKeySchemas() {
-		$startSchema = new Schema(array(), array(), $this->getSchemaConfig());
+		$startSchema = new Schema([], [], $this->getSchemaConfig());
 		$table = $startSchema->createTable($this->tableName);
 		$table->addColumn('id', 'integer');
 		$table->addColumn('name', 'string');
-		$table->addIndex(array('id'), $this->tableName . '_id');
+		$table->addIndex(['id'], $this->tableName . '_id');
 
-		$endSchema = new Schema(array(), array(), $this->getSchemaConfig());
+		$endSchema = new Schema([], [], $this->getSchemaConfig());
 		$table = $endSchema->createTable($this->tableName);
 		$table->addColumn('id', 'integer');
 		$table->addColumn('name', 'string');
-		$table->addUniqueIndex(array('id'), $this->tableName . '_id');
+		$table->addUniqueIndex(['id'], $this->tableName . '_id');
 
-		return array($startSchema, $endSchema);
+		return [$startSchema, $endSchema];
 	}
+
+	/**
+	 * @return \Doctrine\DBAL\Schema\Schema[]
+	 */
+	private function getChangedTypeSchema($from, $to) {
+		$startSchema = new Schema([], [], $this->getSchemaConfig());
+		$table = $startSchema->createTable($this->tableName);
+		$table->addColumn('id', $from);
+		$table->addColumn('name', 'string');
+		$table->addIndex(['id'], $this->tableName . '_id');
+
+		$endSchema = new Schema([], [], $this->getSchemaConfig());
+		$table = $endSchema->createTable($this->tableName);
+		$table->addColumn('id', $to);
+		$table->addColumn('name', 'string');
+		$table->addIndex(['id'], $this->tableName . '_id');
+
+		return [$startSchema, $endSchema];
+	}
+
 
 	private function getSchemaConfig() {
 		$config = new SchemaConfig();
@@ -99,38 +124,74 @@ class MigratorTest extends \Test\TestCase {
 	}
 
 	private function isSQLite() {
-		return $this->connection->getDriver() instanceof \Doctrine\DBAL\Driver\PDOSqlite\Driver;
+		return $this->connection->getDatabasePlatform() instanceof SqlitePlatform;
 	}
 
-	/**
-	 * @expectedException \OC\DB\MigrationException
-	 */
+	private function isMySQL() {
+		return $this->connection->getDatabasePlatform() instanceof MySQLPlatform;
+	}
+
+
 	public function testDuplicateKeyUpgrade() {
+		$this->expectException(Exception\UniqueConstraintViolationException::class);
+
 		if ($this->isSQLite()) {
 			$this->markTestSkipped('sqlite does not throw errors when creating a new key on existing data');
 		}
-		list($startSchema, $endSchema) = $this->getDuplicateKeySchemas();
+		[$startSchema, $endSchema] = $this->getDuplicateKeySchemas();
 		$migrator = $this->manager->getMigrator();
 		$migrator->migrate($startSchema);
 
-		$this->connection->insert($this->tableName, array('id' => 1, 'name' => 'foo'));
-		$this->connection->insert($this->tableName, array('id' => 2, 'name' => 'bar'));
-		$this->connection->insert($this->tableName, array('id' => 2, 'name' => 'qwerty'));
+		$this->connection->insert($this->tableName, ['id' => 1, 'name' => 'foo']);
+		$this->connection->insert($this->tableName, ['id' => 2, 'name' => 'bar']);
+		$this->connection->insert($this->tableName, ['id' => 2, 'name' => 'qwerty']);
 
-		$migrator->checkMigrate($endSchema);
-		$this->fail('checkMigrate should have failed');
+		try {
+			$migrator->migrate($endSchema);
+		} catch (Exception\UniqueConstraintViolationException $e) {
+			if (!$this->isMySQL()) {
+				$this->connection->rollBack();
+			}
+			throw $e;
+		}
+	}
+
+	public function testChangeToString() {
+		[$startSchema, $endSchema] = $this->getChangedTypeSchema('integer', 'string');
+		$migrator = $this->manager->getMigrator();
+		$migrator->migrate($startSchema);
+		$schema = new SchemaWrapper($this->connection);
+		$table = $schema->getTable(substr($this->tableName, 3));
+		$this->assertEquals('integer', $table->getColumn('id')->getType()->getName());
+
+		$this->connection->insert($this->tableName, ['id' => 1, 'name' => 'foo']);
+		$this->connection->insert($this->tableName, ['id' => 2, 'name' => 'bar']);
+		$this->connection->insert($this->tableName, ['id' => 3, 'name' => 'qwerty']);
+
+		$migrator->migrate($endSchema);
+		$this->addToAssertionCount(1);
+
+		$qb = $this->connection->getQueryBuilder();
+		$result = $qb->select('*')->from(substr($this->tableName, 3))->execute();
+		$this->assertEquals([
+			['id' => 1, 'name' => 'foo'],
+			['id' => 2, 'name' => 'bar'],
+			['id' => 3, 'name' => 'qwerty']
+		], $result->fetchAll());
+		$schema = new SchemaWrapper($this->connection);
+		$table = $schema->getTable(substr($this->tableName, 3));
+		$this->assertEquals('string', $table->getColumn('id')->getType()->getName());
 	}
 
 	public function testUpgrade() {
-		list($startSchema, $endSchema) = $this->getDuplicateKeySchemas();
+		[$startSchema, $endSchema] = $this->getDuplicateKeySchemas();
 		$migrator = $this->manager->getMigrator();
 		$migrator->migrate($startSchema);
 
-		$this->connection->insert($this->tableName, array('id' => 1, 'name' => 'foo'));
-		$this->connection->insert($this->tableName, array('id' => 2, 'name' => 'bar'));
-		$this->connection->insert($this->tableName, array('id' => 3, 'name' => 'qwerty'));
+		$this->connection->insert($this->tableName, ['id' => 1, 'name' => 'foo']);
+		$this->connection->insert($this->tableName, ['id' => 2, 'name' => 'bar']);
+		$this->connection->insert($this->tableName, ['id' => 3, 'name' => 'qwerty']);
 
-		$migrator->checkMigrate($endSchema);
 		$migrator->migrate($endSchema);
 		$this->addToAssertionCount(1);
 	}
@@ -141,15 +202,14 @@ class MigratorTest extends \Test\TestCase {
 		$this->config->setSystemValue('dbtableprefix', 'ownc_');
 		$this->tableName = strtolower($this->getUniqueID($this->config->getSystemValue('dbtableprefix') . 'test_'));
 
-		list($startSchema, $endSchema) = $this->getDuplicateKeySchemas();
+		[$startSchema, $endSchema] = $this->getDuplicateKeySchemas();
 		$migrator = $this->manager->getMigrator();
 		$migrator->migrate($startSchema);
 
-		$this->connection->insert($this->tableName, array('id' => 1, 'name' => 'foo'));
-		$this->connection->insert($this->tableName, array('id' => 2, 'name' => 'bar'));
-		$this->connection->insert($this->tableName, array('id' => 3, 'name' => 'qwerty'));
+		$this->connection->insert($this->tableName, ['id' => 1, 'name' => 'foo']);
+		$this->connection->insert($this->tableName, ['id' => 2, 'name' => 'bar']);
+		$this->connection->insert($this->tableName, ['id' => 3, 'name' => 'qwerty']);
 
-		$migrator->checkMigrate($endSchema);
 		$migrator->migrate($endSchema);
 		$this->addToAssertionCount(1);
 
@@ -157,60 +217,58 @@ class MigratorTest extends \Test\TestCase {
 	}
 
 	public function testInsertAfterUpgrade() {
-		list($startSchema, $endSchema) = $this->getDuplicateKeySchemas();
+		[$startSchema, $endSchema] = $this->getDuplicateKeySchemas();
 		$migrator = $this->manager->getMigrator();
 		$migrator->migrate($startSchema);
 
 		$migrator->migrate($endSchema);
 
-		$this->connection->insert($this->tableName, array('id' => 1, 'name' => 'foo'));
-		$this->connection->insert($this->tableName, array('id' => 2, 'name' => 'bar'));
+		$this->connection->insert($this->tableName, ['id' => 1, 'name' => 'foo']);
+		$this->connection->insert($this->tableName, ['id' => 2, 'name' => 'bar']);
 		try {
-			$this->connection->insert($this->tableName, array('id' => 2, 'name' => 'qwerty'));
+			$this->connection->insert($this->tableName, ['id' => 2, 'name' => 'qwerty']);
 			$this->fail('Expected duplicate key insert to fail');
-		} catch (DBALException $e) {
+		} catch (Exception $e) {
 			$this->addToAssertionCount(1);
 		}
 	}
 
 	public function testAddingPrimaryKeyWithAutoIncrement() {
-		$startSchema = new Schema(array(), array(), $this->getSchemaConfig());
+		$startSchema = new Schema([], [], $this->getSchemaConfig());
 		$table = $startSchema->createTable($this->tableName);
 		$table->addColumn('id', 'integer');
 		$table->addColumn('name', 'string');
 
-		$endSchema = new Schema(array(), array(), $this->getSchemaConfig());
+		$endSchema = new Schema([], [], $this->getSchemaConfig());
 		$table = $endSchema->createTable($this->tableName);
-		$table->addColumn('id', 'integer', array('autoincrement' => true));
+		$table->addColumn('id', 'integer', ['autoincrement' => true]);
 		$table->addColumn('name', 'string');
-		$table->setPrimaryKey(array('id'));
+		$table->setPrimaryKey(['id']);
 
 		$migrator = $this->manager->getMigrator();
 		$migrator->migrate($startSchema);
 
-		$migrator->checkMigrate($endSchema);
 		$migrator->migrate($endSchema);
 
 		$this->addToAssertionCount(1);
 	}
 
 	public function testReservedKeywords() {
-		$startSchema = new Schema(array(), array(), $this->getSchemaConfig());
+		$startSchema = new Schema([], [], $this->getSchemaConfig());
 		$table = $startSchema->createTable($this->tableName);
-		$table->addColumn('id', 'integer', array('autoincrement' => true));
-		$table->addColumn('user', 'string', array('length' => 255));
-		$table->setPrimaryKey(array('id'));
+		$table->addColumn('id', 'integer', ['autoincrement' => true]);
+		$table->addColumn('user', 'string', ['length' => 255]);
+		$table->setPrimaryKey(['id']);
 
-		$endSchema = new Schema(array(), array(), $this->getSchemaConfig());
+		$endSchema = new Schema([], [], $this->getSchemaConfig());
 		$table = $endSchema->createTable($this->tableName);
-		$table->addColumn('id', 'integer', array('autoincrement' => true));
-		$table->addColumn('user', 'string', array('length' => 64));
-		$table->setPrimaryKey(array('id'));
+		$table->addColumn('id', 'integer', ['autoincrement' => true]);
+		$table->addColumn('user', 'string', ['length' => 64]);
+		$table->setPrimaryKey(['id']);
 
 		$migrator = $this->manager->getMigrator();
 		$migrator->migrate($startSchema);
 
-		$migrator->checkMigrate($endSchema);
 		$migrator->migrate($endSchema);
 
 		$this->addToAssertionCount(1);
@@ -227,7 +285,7 @@ class MigratorTest extends \Test\TestCase {
 		$tableFk = $startSchema->createTable($this->tableNameTmp);
 		$tableFk->addColumn('fk_id', 'integer');
 		$tableFk->addColumn('name', 'string');
-		$tableFk->addForeignKeyConstraint($this->tableName, array('fk_id'), array('id'), array(), $fkName);
+		$tableFk->addForeignKeyConstraint($this->tableName, ['fk_id'], ['id'], [], $fkName);
 
 		$migrator = $this->manager->getMigrator();
 		$migrator->migrate($startSchema);

@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2019, Roeland Jago Douma <roeland@famdouma.nl>
  *
@@ -18,7 +20,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +34,6 @@ namespace OCP\AppFramework\Http;
  * As alternative with sane exemptions look at FeaturePolicy
  *
  * @see \OCP\AppFramework\Http\FeaturePolicy
- * @package OCP\AppFramework\Http
  * @since 17.0.0
  */
 class EmptyFeaturePolicy {

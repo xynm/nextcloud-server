@@ -19,16 +19,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import $ from 'jquery'
+
 /**
  * Parses a URL query string into a JS map
  * @param {string} queryString query string in the format param1=1234&param2=abcde&param3=xyz
  * @returns {Object.<string, string>} map containing key/values matching the URL parameters
  */
 export const parse = queryString => {
-	let parts
 	let pos
 	let components
-	let result = {}
+	const result = {}
 	let key
 	if (!queryString) {
 		return null
@@ -37,15 +38,15 @@ export const parse = queryString => {
 	if (pos >= 0) {
 		queryString = queryString.substr(pos + 1)
 	}
-	parts = queryString.replace(/\+/g, '%20').split('&')
+	const parts = queryString.replace(/\+/g, '%20').split('&')
 	for (let i = 0; i < parts.length; i++) {
 		// split on first equal sign
-		var part = parts[i]
+		const part = parts[i]
 		pos = part.indexOf('=')
 		if (pos >= 0) {
 			components = [
 				part.substr(0, pos),
-				part.substr(pos + 1)
+				part.substr(pos + 1),
 			]
 		} else {
 			// key only
@@ -79,7 +80,7 @@ export const build = params => {
 		return ''
 	}
 	return $.map(params, function(value, key) {
-		var s = encodeURIComponent(key)
+		let s = encodeURIComponent(key)
 		if (value !== null && typeof (value) !== 'undefined') {
 			s += '=' + encodeURIComponent(value)
 		}

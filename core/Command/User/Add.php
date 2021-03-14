@@ -2,6 +2,8 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Laurens Post <lkpost@scept.re>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
@@ -18,7 +20,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -83,7 +85,7 @@ class Add extends Command {
 			);
 	}
 
-	protected function execute(InputInterface $input, OutputInterface $output) {
+	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$uid = $input->getArgument('uid');
 		if ($this->userManager->userExists($uid)) {
 			$output->writeln('<error>The user "' . $uid . '" already exists.</error>');
@@ -153,14 +155,15 @@ class Add extends Command {
 			if (!$group) {
 				$this->groupManager->createGroup($groupName);
 				$group = $this->groupManager->get($groupName);
-				if($group instanceof IGroup) {
+				if ($group instanceof IGroup) {
 					$output->writeln('Created group "' . $group->getGID() . '"');
 				}
 			}
-			if($group instanceof IGroup) {
+			if ($group instanceof IGroup) {
 				$group->addUser($user);
 				$output->writeln('User "' . $user->getUID() . '" added to group "' . $group->getGID() . '"');
 			}
 		}
+		return 0;
 	}
 }

@@ -2,10 +2,14 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Alexander A. Klimov <grandmaster@al2klimov.de>
+ * @author Daniel Schneider <daniel@schneidoa.de>
  * @author Georg Ehrke <oc.list@georgehrke.com>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Olivier Paroz <github@oparoz.com>
+ * @author Robin Appelman <robin@icewind.nl>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
  * @license AGPL-3.0
@@ -20,7 +24,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -49,9 +53,9 @@ class Movie extends ProviderV2 {
 		$absPath = $this->getLocalFile($file, 5242880); // only use the first 5MB
 
 		$result = $this->generateThumbNail($maxX, $maxY, $absPath, 5);
-		if ($result === false) {
+		if ($result === null) {
 			$result = $this->generateThumbNail($maxX, $maxY, $absPath, 1);
-			if ($result === false) {
+			if ($result === null) {
 				$result = $this->generateThumbNail($maxX, $maxY, $absPath, 0);
 			}
 		}

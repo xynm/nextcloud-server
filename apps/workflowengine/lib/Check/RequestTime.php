@@ -21,15 +21,13 @@
 
 namespace OCA\WorkflowEngine\Check;
 
-
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use OCP\WorkflowEngine\ICheck;
 
 class RequestTime implements ICheck {
-
-	const REGEX_TIME = '([0-1][0-9]|2[0-3]):([0-5][0-9])';
-	const REGEX_TIMEZONE = '([a-zA-Z]+(?:\\/[a-zA-Z\-\_]+)+)';
+	public const REGEX_TIME = '([0-1][0-9]|2[0-3]):([0-5][0-9])';
+	public const REGEX_TIMEZONE = '([a-zA-Z]+(?:\\/[a-zA-Z\-\_]+)+)';
 
 	/** @var bool[] */
 	protected $cachedResults;
@@ -81,8 +79,8 @@ class RequestTime implements ICheck {
 	 * @return int
 	 */
 	protected function getTimestamp($currentTimestamp, $value) {
-		list($time1, $timezone1) = explode(' ', $value);
-		list($hour1, $minute1) = explode(':', $time1);
+		[$time1, $timezone1] = explode(' ', $value);
+		[$hour1, $minute1] = explode(':', $time1);
 		$date1 = new \DateTime('now', new \DateTimeZone($timezone1));
 		$date1->setTimestamp($currentTimestamp);
 		$date1->setTime($hour1, $minute1);

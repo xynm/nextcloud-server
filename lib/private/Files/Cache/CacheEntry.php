@@ -2,6 +2,7 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Robin Appelman <robin@icewind.nl>
  *
  * @license AGPL-3.0
@@ -16,7 +17,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -27,7 +28,7 @@ use OCP\Files\Cache\ICacheEntry;
 /**
  * meta data for a file or folder
  */
-class CacheEntry implements ICacheEntry, \ArrayAccess {
+class CacheEntry implements ICacheEntry {
 	/**
 	 * @var array
 	 */
@@ -67,7 +68,7 @@ class CacheEntry implements ICacheEntry, \ArrayAccess {
 
 
 	public function getPath() {
-		return $this->data['path'];
+		return (string)$this->data['path'];
 	}
 
 

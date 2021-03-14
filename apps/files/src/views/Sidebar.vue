@@ -25,7 +25,8 @@
 		v-if="file"
 		ref="sidebar"
 		v-bind="appSidebar"
-		@close="onClose"
+		:force-menu="true"
+		@close="close"
 		@update:active="setActiveTab"
 		@update:starred="toggleStarred"
 		@[defaultActionListener].stop.prevent="onDefaultAction">
@@ -37,39 +38,63 @@
 				:file-info="fileInfo" />
 		</template>
 
-		<!-- Error display -->
-		<div v-if="error" class="emptycontent">
-			<div class="icon-error" />
-			<h2>{{ error }}</h2>
-		</div>
+		<!-- Actions menu -->
+		<template v-if="fileInfo" #secondary-actions>
+			<!-- TODO: create proper api for apps to register actions
+			And inject themselves here. -->
+			<ActionButton
+				v-if="isSystemTagsEnabled"
+				:close-after-click="true"
+				icon="icon-tag"
+				@click="toggleTags">
+				{{ t('files', 'Tags') }}
+			</ActionButton>
+		</template>
 
-		<!-- If fileInfo fetch is complete, display tabs -->
+		<!-- Error display -->
+		<EmptyContent v-if="error" icon="icon-error">
+			{{ error }}
+		</EmptyContent>
+
+		<!-- If fileInfo fetch is complete, render tabs -->
 		<template v-for="tab in tabs" v-else-if="fileInfo">
-			<component
-				:is="tabComponent(tab).is"
-				v-if="canDisplay(tab)"
+			<!-- Hide them if we're loading another file but keep them mounted -->
+			<SidebarTab
+				v-if="tab.enabled(fileInfo)"
+				v-show="!loading"
+				:id="tab.id"
 				:key="tab.id"
-				:component="tabComponent(tab).component"
 				:name="tab.name"
-				:dav-path="davPath"
+				:icon="tab.icon"
+				:on-mount="tab.mount"
+				:on-update="tab.update"
+				:on-destroy="tab.destroy"
+				:on-scroll-bottom-reached="tab.scrollBottomReached"
 				:file-info="fileInfo" />
 		</template>
 	</AppSidebar>
 </template>
 <script>
+import { encodePath } from '@nextcloud/paths'
 import $ from 'jquery'
 import axios from '@nextcloud/axios'
-import AppSidebar from 'nextcloud-vue/dist/Components/AppSidebar'
+import AppSidebar from '@nextcloud/vue/dist/Components/AppSidebar'
+import ActionButton from '@nextcloud/vue/dist/Components/ActionButton'
+import EmptyContent from '@nextcloud/vue/dist/Components/EmptyContent'
+
 import FileInfo from '../services/FileInfo'
-import LegacyTab from '../components/LegacyTab'
+import SidebarTab from '../components/SidebarTab'
 import LegacyView from '../components/LegacyView'
 
 export default {
 	name: 'Sidebar',
 
 	components: {
+		ActionButton,
 		AppSidebar,
-		LegacyView
+		EmptyContent,
+		LegacyView,
+		SidebarTab,
 	},
 
 	data() {
@@ -77,8 +102,9 @@ export default {
 			// reactive state
 			Sidebar: OCA.Files.Sidebar.state,
 			error: null,
+			loading: true,
 			fileInfo: null,
-			starLoading: false
+			starLoading: false,
 		}
 	},
 
@@ -115,7 +141,7 @@ export default {
 		 */
 		davPath() {
 			const user = OC.getCurrentUser().uid
-			return OC.linkToRemote(`dav/files/${user}${this.file}`)
+			return OC.linkToRemote(`dav/files/${user}${encodePath(this.file)}`)
 		},
 
 		/**
@@ -167,27 +193,29 @@ export default {
 		appSidebar() {
 			if (this.fileInfo) {
 				return {
-					background: this.background,
+					'data-mimetype': this.fileInfo.mimetype,
+					'star-loading': this.starLoading,
 					active: this.activeTab,
+					background: this.background,
 					class: { 'has-preview': this.fileInfo.hasPreview },
 					compact: !this.fileInfo.hasPreview,
-					'star-loading': this.starLoading,
+					loading: this.loading,
 					starred: this.fileInfo.isFavourited,
 					subtitle: this.subtitle,
-					title: this.fileInfo.name
+					title: this.fileInfo.name,
 				}
 			} else if (this.error) {
 				return {
 					key: 'error', // force key to re-render
 					subtitle: '',
-					title: ''
+					title: '',
 				}
-			} else {
-				return {
-					class: 'icon-loading',
-					subtitle: '',
-					title: ''
-				}
+			}
+			// no fileInfo yet, showing empty data
+			return {
+				loading: this.loading,
+				subtitle: '',
+				title: '',
 			}
 		},
 
@@ -199,6 +227,8 @@ export default {
 		defaultAction() {
 			return this.fileInfo
 				&& OCA.Files && OCA.Files.App && OCA.Files.App.fileList
+				&& OCA.Files.App.fileList.fileActions
+				&& OCA.Files.App.fileList.fileActions.getDefaultFileAction
 				&& OCA.Files.App.fileList
 					.fileActions.getDefaultFileAction(this.fileInfo.mimetype, this.fileInfo.type, OC.PERMISSION_READ)
 
@@ -213,36 +243,11 @@ export default {
 		 */
 		defaultActionListener() {
 			return this.defaultAction ? 'figure-click' : null
-		}
-	},
+		},
 
-	watch: {
-		// update the sidebar data
-		async file(curr, prev) {
-			this.resetData()
-			if (curr && curr.trim() !== '') {
-				try {
-					this.fileInfo = await FileInfo(this.davPath)
-					// adding this as fallback because other apps expect it
-					this.fileInfo.dir = this.file.split('/').slice(0, -1).join('/')
-
-					// DEPRECATED legacy views
-					// TODO: remove
-					this.views.forEach(view => {
-						view.setFileInfo(this.fileInfo)
-					})
-
-					this.$nextTick(() => {
-						if (this.$refs.sidebar) {
-							this.$refs.sidebar.updateTabs()
-						}
-					})
-				} catch (error) {
-					this.error = t('files', 'Error while loading the file data')
-					console.error('Error while loading the file data')
-				}
-			}
-		}
+		isSystemTagsEnabled() {
+			return OCA && 'SystemTags' in OCA
+		},
 	},
 
 	methods: {
@@ -253,42 +258,53 @@ export default {
 		 * @returns {boolean}
 		 */
 		canDisplay(tab) {
-			if (tab.isLegacyTab) {
-				return this.fileInfo && tab.component.canDisplay && tab.component.canDisplay(this.fileInfo)
-			}
-			// if the tab does not have an enabled method, we assume it's always available
-			return tab.enabled ? tab.enabled(this.fileInfo) : true
-		},
-		onClose() {
-			this.resetData()
-			OCA.Files.Sidebar.close()
+			return tab.enabled(this.fileInfo)
 		},
 		resetData() {
 			this.error = null
 			this.fileInfo = null
 			this.$nextTick(() => {
-				if (this.$refs.sidebar) {
-					this.$refs.sidebar.updateTabs()
+				if (this.$refs.tabs) {
+					this.$refs.tabs.updateTabs()
 				}
 			})
 		},
+
 		getPreviewIfAny(fileInfo) {
 			if (fileInfo.hasPreview) {
 				return OC.generateUrl(`/core/preview?fileId=${fileInfo.id}&x=${screen.width}&y=${screen.height}&a=true`)
 			}
-			return OCA.Files.App.fileList._getIconUrl(fileInfo)
+			return this.getIconUrl(fileInfo)
 		},
 
-		tabComponent(tab) {
-			if (tab.isLegacyTab) {
-				return {
-					is: LegacyTab,
-					component: tab.component
+		/**
+		 * Copied from https://github.com/nextcloud/server/blob/16e0887ec63591113ee3f476e0c5129e20180cde/apps/files/js/filelist.js#L1377
+		 * TODO: We also need this as a standalone library
+		 *
+		 * @param {Object} fileInfo the fileinfo
+		 * @returns {string} Url to the icon for mimeType
+		 */
+		getIconUrl(fileInfo) {
+			const mimeType = fileInfo.mimetype || 'application/octet-stream'
+			if (mimeType === 'httpd/unix-directory') {
+				// use default folder icon
+				if (fileInfo.mountType === 'shared' || fileInfo.mountType === 'shared-root') {
+					return OC.MimeType.getIconUrl('dir-shared')
+				} else if (fileInfo.mountType === 'external-root') {
+					return OC.MimeType.getIconUrl('dir-external')
+				} else if (fileInfo.mountType !== undefined && fileInfo.mountType !== '') {
+					return OC.MimeType.getIconUrl('dir-' + fileInfo.mountType)
+				} else if (fileInfo.shareTypes && (
+					fileInfo.shareTypes.indexOf(OC.Share.SHARE_TYPE_LINK) > -1
+					|| fileInfo.shareTypes.indexOf(OC.Share.SHARE_TYPE_EMAIL) > -1)
+				) {
+					return OC.MimeType.getIconUrl('dir-public')
+				} else if (fileInfo.shareTypes && fileInfo.shareTypes.length > 0) {
+					return OC.MimeType.getIconUrl('dir-shared')
 				}
+				return OC.MimeType.getIconUrl('dir')
 			}
-			return {
-				is: tab.component
-			}
+			return OC.MimeType.getIconUrl(mimeType)
 		},
 
 		/**
@@ -319,7 +335,7 @@ export default {
 								<oc:favorite>1</oc:favorite>
 							</d:prop>
 						${state ? '</d:set>' : '</d:remove>'}
-						</d:propertyupdate>`
+						</d:propertyupdate>`,
 				})
 
 				// TODO: Obliterate as soon as possible and use events with new files app
@@ -342,17 +358,86 @@ export default {
 					fileInfo: this.fileInfo,
 					dir: this.fileInfo.dir,
 					fileList: OCA.Files.App.fileList,
-					$file: $('body')
+					$file: $('body'),
 				})
 			}
-		}
-	}
+		},
+
+		/**
+		 * Toggle the tags selector
+		 */
+		toggleTags() {
+			if (OCA.SystemTags && OCA.SystemTags.View) {
+				OCA.SystemTags.View.toggle()
+			}
+		},
+
+		/**
+		 * Open the sidebar for the given file
+		 *
+		 * @param {string} path the file path to load
+		 * @returns {Promise}
+		 * @throws {Error} loading failure
+		 */
+		async open(path) {
+			// update current opened file
+			this.Sidebar.file = path
+
+			if (path && path.trim() !== '') {
+				// reset data, keep old fileInfo to not reload all tabs and just hide them
+				this.error = null
+				this.loading = true
+
+				try {
+					this.fileInfo = await FileInfo(this.davPath)
+					// adding this as fallback because other apps expect it
+					this.fileInfo.dir = this.file.split('/').slice(0, -1).join('/')
+
+					// DEPRECATED legacy views
+					// TODO: remove
+					this.views.forEach(view => {
+						view.setFileInfo(this.fileInfo)
+					})
+
+					this.$nextTick(() => {
+						if (this.$refs.tabs) {
+							this.$refs.tabs.updateTabs()
+						}
+					})
+				} catch (error) {
+					this.error = t('files', 'Error while loading the file data')
+					console.error('Error while loading the file data', error)
+
+					throw new Error(error)
+				} finally {
+					this.loading = false
+				}
+			}
+		},
+
+		/**
+		 * Close the sidebar
+		 */
+		close() {
+			this.Sidebar.file = ''
+			this.resetData()
+		},
+	},
 }
 </script>
 <style lang="scss" scoped>
-#app-sidebar {
-	&.has-preview::v-deep .app-sidebar-header__figure {
-		background-size: cover;
+.app-sidebar {
+	&.has-preview::v-deep {
+		.app-sidebar-header__figure {
+			background-size: cover;
+		}
+
+		&[data-mimetype="text/plain"],
+		&[data-mimetype="text/markdown"] {
+			.app-sidebar-header__figure {
+				background-size: contain;
+			}
+		}
 	}
 }
 </style>

@@ -23,12 +23,13 @@
  * Get a variable by name
  * @param {string} context context
  * @returns {Function} getter
+ * @deprecated 19.0.0 use https://lodash.com/docs#get
  */
 export const get = context => name => {
 	const namespaces = name.split('.')
 	const tail = namespaces.pop()
 
-	for (var i = 0; i < namespaces.length; i++) {
+	for (let i = 0; i < namespaces.length; i++) {
 		context = context[namespaces[i]]
 		if (!context) {
 			return false
@@ -41,6 +42,7 @@ export const get = context => name => {
  * Set a variable by name
  * @param {string} context context
  * @returns {Function} setter
+ * @deprecated 19.0.0 use https://lodash.com/docs#set
  */
 export const set = context => (name, value) => {
 	const namespaces = name.split('.')

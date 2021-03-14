@@ -1,8 +1,11 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2019, Roeland Jago Douma <roeland@famdouma.nl>
  *
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
@@ -18,7 +21,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,7 +64,7 @@ class ExiprationNotification extends Command {
 			->setDescription('Notify share initiators when a share will expire the next day.');
 	}
 
-	public function execute(InputInterface $input, OutputInterface $output) {
+	public function execute(InputInterface $input, OutputInterface $output): int {
 		//Current time
 		$minTime = $this->time->getDateTime();
 		$minTime->add(new \DateInterval('P1D'));
@@ -92,7 +95,6 @@ class ExiprationNotification extends Command {
 			$notification->setUser($share->getSharedBy());
 			$this->notificationManager->notify($notification);
 		}
+		return 0;
 	}
-
-
 }

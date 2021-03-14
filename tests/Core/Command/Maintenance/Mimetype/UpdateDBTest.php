@@ -36,15 +36,15 @@ class UpdateDBTest extends TestCase {
 	/** @var IMimeTypeLoader */
 	protected $loader;
 
-	/** @var \PHPUnit_Framework_MockObject_MockObject */
+	/** @var \PHPUnit\Framework\MockObject\MockObject */
 	protected $consoleInput;
-	/** @var \PHPUnit_Framework_MockObject_MockObject */
+	/** @var \PHPUnit\Framework\MockObject\MockObject */
 	protected $consoleOutput;
 
 	/** @var \Symfony\Component\Console\Command\Command */
 	protected $command;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->detector = $this->getMockBuilder(Detection::class)
@@ -101,16 +101,16 @@ class UpdateDBTest extends TestCase {
 			]);
 		$this->loader->expects($this->exactly(2))
 			->method('exists')
-			->will($this->returnValueMap([
+			->willReturnMap([
 				['testing/existingmimetype', true],
 				['testing/newmimetype', false],
-			]));
+			]);
 		$this->loader->expects($this->exactly(2))
 			->method('getId')
-			->will($this->returnValueMap([
+			->willReturnMap([
 				['testing/existingmimetype', 1],
 				['testing/newmimetype', 2],
-			]));
+			]);
 
 		$this->loader->expects($this->once())
 			->method('updateFilecache')
@@ -158,14 +158,14 @@ class UpdateDBTest extends TestCase {
 			]);
 		$this->loader->expects($this->exactly(1))
 			->method('exists')
-			->will($this->returnValueMap([
+			->willReturnMap([
 				['testing/existingmimetype', true],
-			]));
+			]);
 		$this->loader->expects($this->exactly(1))
 			->method('getId')
-			->will($this->returnValueMap([
+			->willReturnMap([
 				['testing/existingmimetype', 1],
-			]));
+			]);
 
 		$this->loader->expects($this->once())
 			->method('updateFilecache')

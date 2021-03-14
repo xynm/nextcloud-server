@@ -2,7 +2,7 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
- * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Julius Härtl <jus@bitgrid.net>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <robin@icewind.nl>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
@@ -19,7 +19,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -33,10 +33,11 @@
 
 namespace OCP\Files;
 
+use OCP\Lock\LockedException;
+
 /**
  * Interface File
  *
- * @package OCP\Files
  * @since 6.0.0
  */
 interface File extends Node {
@@ -44,7 +45,8 @@ interface File extends Node {
 	 * Get the content of the file as string
 	 *
 	 * @return string
-	 * @throws \OCP\Files\NotPermittedException
+	 * @throws NotPermittedException
+	 * @throws LockedException
 	 * @since 6.0.0
 	 */
 	public function getContent();
@@ -53,8 +55,9 @@ interface File extends Node {
 	 * Write to the file from string data
 	 *
 	 * @param string|resource $data
-	 * @throws \OCP\Files\NotPermittedException
-	 * @throws \OCP\Files\GenericFileException
+	 * @throws NotPermittedException
+	 * @throws GenericFileException
+	 * @throws LockedException
 	 * @since 6.0.0
 	 */
 	public function putContent($data);
@@ -72,7 +75,8 @@ interface File extends Node {
 	 *
 	 * @param string $mode
 	 * @return resource
-	 * @throws \OCP\Files\NotPermittedException
+	 * @throws NotPermittedException
+	 * @throws LockedException
 	 * @since 6.0.0
 	 */
 	public function fopen($mode);

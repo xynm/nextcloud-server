@@ -2,7 +2,7 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
- * @author Christoph Wurst <christoph@owncloud.com>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Cornelius Kölbel <cornelius.koelbel@netknights.it>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
@@ -20,7 +20,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -108,7 +108,7 @@ class TwoFactorChallengeController extends Controller {
 		$user = $this->userSession->getUser();
 		$providerSet = $this->twoFactorManager->getProviderSet($user);
 		$allProviders = $providerSet->getProviders();
-		list($providers, $backupProvider) = $this->splitProvidersAndBackupCodes($allProviders);
+		[$providers, $backupProvider] = $this->splitProvidersAndBackupCodes($allProviders);
 		$setupProviders = $this->twoFactorManager->getLoginSetupProviders($user);
 
 		$data = [
@@ -278,5 +278,4 @@ class TwoFactorChallengeController extends Controller {
 			]
 		));
 	}
-
 }

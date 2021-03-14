@@ -4,6 +4,7 @@
  *
  * @author Bjoern Schiessle <bjoern@schiessle.org>
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license AGPL-3.0
@@ -18,16 +19,16 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OCA\FederatedFileSharing\Tests;
 
-
 use OCA\FederatedFileSharing\AddressHandler;
 use OCA\FederatedFileSharing\Notifications;
 use OCP\BackgroundJob\IJobList;
+use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Federation\ICloudFederationFactory;
 use OCP\Federation\ICloudFederationProviderManager;
 use OCP\Http\Client\IClientService;
@@ -35,25 +36,28 @@ use OCP\OCS\IDiscoveryService;
 
 class NotificationsTest extends \Test\TestCase {
 
-	/** @var  AddressHandler | \PHPUnit_Framework_MockObject_MockObject */
+	/** @var  AddressHandler | \PHPUnit\Framework\MockObject\MockObject */
 	private $addressHandler;
 
-	/** @var  IClientService | \PHPUnit_Framework_MockObject_MockObject*/
+	/** @var  IClientService | \PHPUnit\Framework\MockObject\MockObject*/
 	private $httpClientService;
 
-	/** @var  IDiscoveryService | \PHPUnit_Framework_MockObject_MockObject */
+	/** @var  IDiscoveryService | \PHPUnit\Framework\MockObject\MockObject */
 	private $discoveryService;
 
-	/** @var  IJobList | \PHPUnit_Framework_MockObject_MockObject */
+	/** @var  IJobList | \PHPUnit\Framework\MockObject\MockObject */
 	private $jobList;
 
-	/** @var ICloudFederationProviderManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var ICloudFederationProviderManager|\PHPUnit\Framework\MockObject\MockObject */
 	private $cloudFederationProviderManager;
 
-	/** @var ICloudFederationFactory|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var ICloudFederationFactory|\PHPUnit\Framework\MockObject\MockObject */
 	private $cloudFederationFactory;
 
-	public function setUp() {
+	/** @var IEventDispatcher|\PHPUnit\Framework\MockObject\MockObject */
+	private $eventDispatcher;
+
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->jobList = $this->getMockBuilder('OCP\BackgroundJob\IJobList')->getMock();
@@ -63,14 +67,14 @@ class NotificationsTest extends \Test\TestCase {
 			->disableOriginalConstructor()->getMock();
 		$this->cloudFederationProviderManager = $this->createMock(ICloudFederationProviderManager::class);
 		$this->cloudFederationFactory = $this->createMock(ICloudFederationFactory::class);
-
+		$this->eventDispatcher = $this->createMock(IEventDispatcher::class);
 	}
 
 	/**
 	 * get instance of Notifications class
 	 *
 	 * @param array $mockedMethods methods which should be mocked
-	 * @return Notifications | \PHPUnit_Framework_MockObject_MockObject
+	 * @return Notifications | \PHPUnit\Framework\MockObject\MockObject
 	 */
 	private function getInstance(array $mockedMethods = []) {
 		if (empty($mockedMethods)) {
@@ -80,7 +84,8 @@ class NotificationsTest extends \Test\TestCase {
 				$this->discoveryService,
 				$this->jobList,
 				$this->cloudFederationProviderManager,
-				$this->cloudFederationFactory
+				$this->cloudFederationFactory,
+				$this->eventDispatcher
 			);
 		} else {
 			$instance = $this->getMockBuilder('OCA\FederatedFileSharing\Notifications')
@@ -91,7 +96,8 @@ class NotificationsTest extends \Test\TestCase {
 						$this->discoveryService,
 						$this->jobList,
 						$this->cloudFederationProviderManager,
-						$this->cloudFederationFactory
+						$this->cloudFederationFactory,
+						$this->eventDispatcher
 					]
 				)->setMethods($mockedMethods)->getMock();
 		}
@@ -143,7 +149,6 @@ class NotificationsTest extends \Test\TestCase {
 		$this->assertSame($expected,
 			$instance->sendUpdateToRemote($remote, $id, $token, $action, ['data1Key' => 'data1Value'], $try)
 		);
-
 	}
 
 
@@ -163,5 +168,4 @@ class NotificationsTest extends \Test\TestCase {
 			[0, ['success' => false, 'result' => json_encode(['ocs' => ['meta' => ['statuscode' => 400]]])], false],
 		];
 	}
-
 }

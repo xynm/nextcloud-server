@@ -1,7 +1,7 @@
 OC.L10N.register(
     "theming",
     {
-    "Loading preview…" : "Laddar förhandsvisning...",
+    "Loading preview…" : "Läser in förhandsvisning...",
     "Saved" : "Sparat",
     "Admin" : "Admin",
     "a safe home for all your data" : "ett säkert hem för alla dina data",
@@ -19,12 +19,11 @@ OC.L10N.register(
     "The uploaded file exceeds the upload_max_filesize directive in php.ini" : "Uppladdningsfilen är för stor (upload_max_filesize i php.ini)",
     "The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form" : "Den uppladdade filen överstiger MAX_FILE_SIZE-instruktionen specificerad i HTML-form",
     "The file was only partially uploaded" : "Filen var endast delvis uppladdad",
-    "No file was uploaded" : "Ingen fil laddades up",
+    "No file was uploaded" : "Ingen fil laddades upp",
     "Missing a temporary folder" : "Saknar en temporär mapp",
     "Could not write file to disk" : "Kunde inte skriva fil till disk",
     "A PHP extension stopped the file upload" : "Ett PHP-tillägg stoppade filuppladdning",
     "No file uploaded" : "Ingen fil uppladdad",
-    "Unsupported image type" : "Filtypen är ej giltig",
     "You are already using a custom theme. Theming app settings might be overwritten by that." : "Du använder redan ett anpassat tema. Dessa appinställningar kan skrivas över.",
     "Theming" : "Teman",
     "Legal notice" : "Rättsligt meddelande",

@@ -5,8 +5,9 @@ declare(strict_types=1);
 /**
  * @copyright Copyright (c) 2016 Christoph Wurst <christoph@winzerhof-wurst.at>
  *
- * @author Christoph Wurst <christoph@owncloud.com>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -21,7 +22,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,8 +63,8 @@ class SecurityProvider implements IProvider {
 			case 'twofactor_success':
 				$params = $event->getSubjectParameters();
 				$event->setParsedSubject($l->t('You successfully logged in using two-factor authentication (%1$s)', [
-							$params['provider'],
-					]));
+					$params['provider'],
+				]));
 				if ($this->activityManager->getRequirePNG()) {
 					$event->setIcon($this->urlGenerator->getAbsoluteURL($this->urlGenerator->imagePath('core', 'actions/password.png')));
 				} else {
@@ -73,8 +74,8 @@ class SecurityProvider implements IProvider {
 			case 'twofactor_failed':
 				$params = $event->getSubjectParameters();
 				$event->setParsedSubject($l->t('A login attempt using two-factor authentication failed (%1$s)', [
-							$params['provider'],
-					]));
+					$params['provider'],
+				]));
 				if ($this->activityManager->getRequirePNG()) {
 					$event->setIcon($this->urlGenerator->getAbsoluteURL($this->urlGenerator->imagePath('core', 'actions/password.png')));
 				} else {
@@ -108,5 +109,4 @@ class SecurityProvider implements IProvider {
 		}
 		return $event;
 	}
-
 }

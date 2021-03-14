@@ -4,8 +4,11 @@
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Bjoern Schiessle <bjoern@schiessle.org>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Sascha Wiswedel <sascha.wiswedel@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -20,18 +23,17 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-namespace OCA\Settings\Admin;
+namespace OCA\Settings\Settings\Admin;
 
 use OC\Share\Share;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\Constants;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\L10N\IFactory;
 use OCP\Settings\ISettings;
 use OCP\Share\IManager;
 use OCP\Util;
@@ -49,9 +51,9 @@ class Sharing implements ISettings {
 	/**
 	 * @param IConfig $config
 	 */
-	public function __construct(IConfig $config, IFactory $l, IManager $shareManager) {
+	public function __construct(IConfig $config, IL10N $l, IManager $shareManager) {
 		$this->config = $config;
-		$this->l = $l->get('lib');
+		$this->l = $l;
 		$this->shareManager = $shareManager;
 	}
 
@@ -65,23 +67,29 @@ class Sharing implements ISettings {
 
 		$parameters = [
 			// Built-In Sharing
-			'allowGroupSharing'                    => $this->config->getAppValue('core', 'shareapi_allow_group_sharing', 'yes'),
-			'allowLinks'                           => $this->config->getAppValue('core', 'shareapi_allow_links', 'yes'),
-			'allowPublicUpload'                    => $this->config->getAppValue('core', 'shareapi_allow_public_upload', 'yes'),
-			'allowResharing'                       => $this->config->getAppValue('core', 'shareapi_allow_resharing', 'yes'),
-			'allowShareDialogUserEnumeration'      => $this->config->getAppValue('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes'),
-			'enforceLinkPassword'                  => Util::isPublicLinkPasswordRequired(),
-			'onlyShareWithGroupMembers'            => $this->shareManager->shareWithGroupMembersOnly(),
-			'shareAPIEnabled'                      => $this->config->getAppValue('core', 'shareapi_enabled', 'yes'),
-			'shareDefaultExpireDateSet'            => $this->config->getAppValue('core', 'shareapi_default_expire_date', 'no'),
-			'shareExpireAfterNDays'                => $this->config->getAppValue('core', 'shareapi_expire_after_n_days', '7'),
-			'shareEnforceExpireDate'               => $this->config->getAppValue('core', 'shareapi_enforce_expire_date', 'no'),
-			'shareExcludeGroups'                   => $this->config->getAppValue('core', 'shareapi_exclude_groups', 'no') === 'yes',
-			'shareExcludedGroupsList'              => $excludeGroupsList,
-			'publicShareDisclaimerText'            => $this->config->getAppValue('core', 'shareapi_public_link_disclaimertext', null),
-			'enableLinkPasswordByDefault'          => $this->config->getAppValue('core', 'shareapi_enable_link_password_by_default', 'no'),
-			'shareApiDefaultPermissions'           => $this->config->getAppValue('core', 'shareapi_default_permissions', Constants::PERMISSION_ALL),
+			'allowGroupSharing' => $this->config->getAppValue('core', 'shareapi_allow_group_sharing', 'yes'),
+			'allowLinks' => $this->config->getAppValue('core', 'shareapi_allow_links', 'yes'),
+			'allowPublicUpload' => $this->config->getAppValue('core', 'shareapi_allow_public_upload', 'yes'),
+			'allowResharing' => $this->config->getAppValue('core', 'shareapi_allow_resharing', 'yes'),
+			'allowShareDialogUserEnumeration' => $this->config->getAppValue('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes'),
+			'restrictUserEnumerationToGroup' => $this->config->getAppValue('core', 'shareapi_restrict_user_enumeration_to_group', 'no'),
+			'restrictUserEnumerationToPhone' => $this->config->getAppValue('core', 'shareapi_restrict_user_enumeration_to_phone', 'no'),
+			'restrictUserEnumerationFullMatch' => $this->config->getAppValue('core', 'shareapi_restrict_user_enumeration_full_match', 'yes'),
+			'enforceLinkPassword' => Util::isPublicLinkPasswordRequired(),
+			'onlyShareWithGroupMembers' => $this->shareManager->shareWithGroupMembersOnly(),
+			'shareAPIEnabled' => $this->config->getAppValue('core', 'shareapi_enabled', 'yes'),
+			'shareDefaultExpireDateSet' => $this->config->getAppValue('core', 'shareapi_default_expire_date', 'no'),
+			'shareExpireAfterNDays' => $this->config->getAppValue('core', 'shareapi_expire_after_n_days', '7'),
+			'shareEnforceExpireDate' => $this->config->getAppValue('core', 'shareapi_enforce_expire_date', 'no'),
+			'shareExcludeGroups' => $this->config->getAppValue('core', 'shareapi_exclude_groups', 'no') === 'yes',
+			'shareExcludedGroupsList' => $excludeGroupsList,
+			'publicShareDisclaimerText' => $this->config->getAppValue('core', 'shareapi_public_link_disclaimertext', null),
+			'enableLinkPasswordByDefault' => $this->config->getAppValue('core', 'shareapi_enable_link_password_by_default', 'no'),
+			'shareApiDefaultPermissions' => $this->config->getAppValue('core', 'shareapi_default_permissions', Constants::PERMISSION_ALL),
 			'shareApiDefaultPermissionsCheckboxes' => $this->getSharePermissionList(),
+			'shareDefaultInternalExpireDateSet' => $this->config->getAppValue('core', 'shareapi_default_internal_expire_date', 'no'),
+			'shareInternalExpireAfterNDays' => $this->config->getAppValue('core', 'shareapi_internal_expire_after_n_days', '7'),
+			'shareInternalEnforceExpireDate' => $this->config->getAppValue('core', 'shareapi_enforce_internal_expire_date', 'no'),
 		];
 
 		return new TemplateResponse('settings', 'settings/admin/sharing', $parameters, '');
@@ -111,7 +119,7 @@ class Sharing implements ISettings {
 			],
 			[
 				'id' => 'canshare',
-				'label' => $this->l->t('Share'),
+				'label' => $this->l->t('Reshare'),
 				'value' => Constants::PERMISSION_SHARE
 			],
 		];

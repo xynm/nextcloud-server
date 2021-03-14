@@ -58,7 +58,7 @@ export default class Config {
 	}
 
 	/**
-	 * Get the default expiration date as string
+	 * Get the default link share expiration date as string
 	 *
 	 * @returns {string}
 	 * @readonly
@@ -69,6 +69,24 @@ export default class Config {
 		if (this.isDefaultExpireDateEnabled) {
 			const date = window.moment.utc()
 			const expireAfterDays = this.defaultExpireDate
+			date.add(expireAfterDays, 'days')
+			expireDateString = date.format('YYYY-MM-DD')
+		}
+		return expireDateString
+	}
+
+	/**
+	 * Get the default internal expiration date as string
+	 *
+	 * @returns {string}
+	 * @readonly
+	 * @memberof Config
+	 */
+	get defaultInternalExpirationDateString() {
+		let expireDateString = ''
+		if (this.isDefaultInternalExpireDateEnabled) {
+			const date = window.moment.utc()
+			const expireAfterDays = this.defaultInternalExpireDate
 			date.add(expireAfterDays, 'days')
 			expireDateString = date.format('YYYY-MM-DD')
 		}
@@ -120,6 +138,28 @@ export default class Config {
 	}
 
 	/**
+	 * Is internal shares expiration enforced ?
+	 *
+	 * @returns {boolean}
+	 * @readonly
+	 * @memberof Config
+	 */
+	get isDefaultInternalExpireDateEnforced() {
+		return OC.appConfig.core.defaultInternalExpireDateEnforced === true
+	}
+
+	/**
+	 * Is there a default expiration date for new internal shares ?
+	 *
+	 * @returns {boolean}
+	 * @readonly
+	 * @memberof Config
+	 */
+	get isDefaultInternalExpireDateEnabled() {
+		return OC.appConfig.core.defaultInternalExpireDateEnabled === true
+	}
+
+	/**
 	 * Are users on this server allowed to send shares to other servers ?
 	 *
 	 * @returns {boolean}
@@ -138,11 +178,15 @@ export default class Config {
 	 * @memberof Config
 	 */
 	get isMailShareAllowed() {
-		return OC.appConfig.shareByMailEnabled !== undefined
+		const capabilities = OC.getCapabilities()
+		// eslint-disable-next-line camelcase
+		return capabilities?.files_sharing?.sharebymail !== undefined
+			// eslint-disable-next-line camelcase
+			&& capabilities?.files_sharing?.public?.enabled === true
 	}
 
 	/**
-	 * Get the default days to expiration
+	 * Get the default days to link shares expiration
 	 *
 	 * @returns {int}
 	 * @readonly
@@ -150,6 +194,17 @@ export default class Config {
 	 */
 	get defaultExpireDate() {
 		return OC.appConfig.core.defaultExpireDate
+	}
+
+	/**
+	 * Get the default days to internal shares expiration
+	 *
+	 * @returns {int}
+	 * @readonly
+	 * @memberof Config
+	 */
+	get defaultInternalExpireDate() {
+		return OC.appConfig.core.defaultInternalExpireDate
 	}
 
 	/**
@@ -171,7 +226,16 @@ export default class Config {
 	 * @memberof Config
 	 */
 	get isPasswordForMailSharesRequired() {
-		return (OC.appConfig.shareByMail === undefined) ? false : OC.appConfig.shareByMail.enforcePasswordProtection === true
+		return (OC.getCapabilities().files_sharing.sharebymail === undefined) ? false : OC.getCapabilities().files_sharing.sharebymail.password.enforced
+	}
+
+	/**
+	 * @returns {boolean}
+	 * @readonly
+	 * @memberof Config
+	 */
+	get shouldAlwaysShowUnique() {
+		return (OC.getCapabilities().files_sharing?.sharee?.always_show_unique === true)
 	}
 
 	/**
@@ -193,7 +257,7 @@ export default class Config {
 	 * @memberof Config
 	 */
 	get maxAutocompleteResults() {
-		return parseInt(OC.config['sharing.maxAutocompleteResults'], 10) || 200
+		return parseInt(OC.config['sharing.maxAutocompleteResults'], 10) || 25
 	}
 
 	/**

@@ -2,7 +2,10 @@ const path = require('path');
 
 module.exports = {
 	entry: {
-		'sidebar': path.join(__dirname, 'src', 'sidebar.js'),
+		sidebar: path.join(__dirname, 'src', 'sidebar.js'),
+		templates: path.join(__dirname, 'src', 'templates.js'),
+		'files-app-settings': path.join(__dirname, 'src', 'files-app-settings.js'),
+		'personal-settings': path.join(__dirname, 'src', 'main-personal-settings.js'),
 	},
 	output: {
 		path: path.resolve(__dirname, './js/dist/'),

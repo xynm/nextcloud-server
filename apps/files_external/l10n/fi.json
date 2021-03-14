@@ -23,7 +23,7 @@
     "Are you sure you want to delete this external storage?" : "Haluatko varmasti poistaa tämän erillisen tallennustilan?",
     "Delete storage?" : "Poistetaanko tallennustila?",
     "Saved" : "Tallennettu",
-    "Saving..." : "Tallennetaan...",
+    "Saving …" : "Tallennetaan…",
     "Save" : "Tallenna",
     "Empty response from the server" : "Tyhjä vastaus palvelimelta",
     "Couldn't access. Please log out and in again to activate this mount point" : "Käyttö ei onnistunut. Kirjaudu ulos ja takaisin sisään aktivoidaksesi tämän liitoskohdan",

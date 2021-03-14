@@ -1,9 +1,13 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright 2019 Georg Ehrke <oc.list@georgehrke.com>
  *
  * @author Georg Ehrke <oc.list@georgehrke.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -18,7 +22,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,7 +87,9 @@ class RegisterBuildReminderIndexBackgroundJob implements IRepairStep {
 		$query = $this->db->getQueryBuilder();
 		$query->select($query->createFunction('MAX(' . $query->getColumnName('id') . ')'))
 			->from('calendarobjects');
-		$maxId = (int)$query->execute()->fetchColumn();
+		$result = $query->execute();
+		$maxId = (int) $result->fetchOne();
+		$result->closeCursor();
 
 		$output->info('Add background job');
 		$this->jobList->add(BuildReminderIndexBackgroundJob::class, [

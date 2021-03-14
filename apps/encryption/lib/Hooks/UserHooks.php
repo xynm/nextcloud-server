@@ -5,7 +5,9 @@
  * @author Bjoern Schiessle <bjoern@schiessle.org>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Clark Tomlinson <fallen013@gmail.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
  * @license AGPL-3.0
@@ -20,12 +22,11 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OCA\Encryption\Hooks;
-
 
 use OC\Files\Filesystem;
 use OCA\Encryption\Crypto\Crypt;
@@ -108,7 +109,6 @@ class UserHooks implements IHook {
 								Session $session,
 								Crypt $crypt,
 								Recovery $recovery) {
-
 		$this->keyManager = $keyManager;
 		$this->userManager = $userManager;
 		$this->logger = $logger;
@@ -257,7 +257,6 @@ class UserHooks implements IHook {
 
 		// current logged in user changes his own password
 		if ($user && $params['uid'] === $user->getUID()) {
-
 			$privateKey = $this->session->getPrivateKey();
 
 			// Encrypt private key with new user pwd as passphrase

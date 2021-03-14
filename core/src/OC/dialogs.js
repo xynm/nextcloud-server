@@ -1,4 +1,3 @@
-/* global alert */
 /* eslint-disable */
 /*
  * @copyright 2019 Christoph Wurst <christoph@winzerhof-wurst.at>
@@ -41,6 +40,7 @@ const Dialogs = {
 	FILEPICKER_TYPE_MOVE: 2,
 	FILEPICKER_TYPE_COPY: 3,
 	FILEPICKER_TYPE_COPY_MOVE: 4,
+	FILEPICKER_TYPE_CUSTOM: 5,
 
 	// used to name each dialog
 	dialogsCounter: 0,
@@ -107,7 +107,7 @@ const Dialogs = {
 			'none',
 			buttons,
 			callback,
-			modal
+			modal === undefined ? true : modal
 		)
 	},
 	/**
@@ -298,7 +298,7 @@ const Dialogs = {
 			}
 
 			var newButton = self.$filePicker.find('.actions.creatable .button-add')
-			if (type === self.FILEPICKER_TYPE_CHOOSE) {
+			if (type === self.FILEPICKER_TYPE_CHOOSE && !options.allowDirectoryChooser) {
 				newButton.hide()
 			}
 			newButton.on('focus', function() {
@@ -317,7 +317,7 @@ const Dialogs = {
 				self.$filePicker.ocdialog('setEnterCallback', function() {
 					event.stopImmediatePropagation()
 					event.preventDefault()
-					self.$form.submit()
+					self.$filePicker.submit()
 				})
 				var newName = $input.val()
 				var lastPos = newName.lastIndexOf('.')
@@ -335,11 +335,39 @@ const Dialogs = {
 				$form.submit()
 			})
 
+
+			/**
+			 * Checks whether the given file name is valid.
+			 *
+			 * @param name file name to check
+			 * @return true if the file name is valid.
+			 * @throws a string exception with an error message if
+			 * the file name is not valid
+			 *
+			 * NOTE: This function is duplicated in the files app:
+			 * https://github.com/nextcloud/server/blob/b9bc2417e7a8dc81feb0abe20359bedaf864f790/apps/files/js/files.js#L127-L148
+			 */
+			var isFileNameValid = function (name) {
+				var trimmedName = name.trim();
+				if (trimmedName === '.' || trimmedName === '..')
+				{
+					throw t('files', '"{name}" is an invalid file name.', {name: name})
+				} else if (trimmedName.length === 0) {
+					throw t('files', 'File name cannot be empty.')
+				} else if (trimmedName.indexOf('/') !== -1) {
+					throw t('files', '"/" is not allowed inside a file name.')
+				} else if (!!(trimmedName.match(OC.config.blacklist_files_regex))) {
+					throw t('files', '"{name}" is not an allowed filetype', {name: name})
+				}
+
+				return true
+			}
+
 			var checkInput = function() {
 				var filename = $input.val()
 				try {
-					if (!Files.isFileNameValid(filename)) {
-						// Files.isFileNameValid(filename) throws an exception itself
+					if (!isFileNameValid(filename)) {
+						// isFileNameValid(filename) throws an exception itself
 					} else if (self.filelist.find(function(file) {
 						return file.name === this
 					}, filename)) {
@@ -446,6 +474,16 @@ const Dialogs = {
 					click: chooseCallback,
 					defaultButton: true
 				})
+			} else if (type === Dialogs.FILEPICKER_TYPE_CUSTOM) {
+				options.buttons.forEach(function(button) {
+					buttonlist.push({
+						text: button.text,
+						click: function() {
+							functionToCall(button.type)
+						},
+						defaultButton: button.defaultButton
+					})
+				})
 			} else {
 				if (type === Dialogs.FILEPICKER_TYPE_COPY || type === Dialogs.FILEPICKER_TYPE_COPY_MOVE) {
 					buttonlist.push({
@@ -486,7 +524,7 @@ const Dialogs = {
 			// Hence this is one of the approach to get the choose button.
 			var getOcDialog = self.$filePicker.closest('.oc-dialog')
 			var buttonEnableDisable = getOcDialog.find('.primary')
-			if (self.$filePicker.data('mimetype').indexOf('httpd/unix-directory') !== -1 && !self.$filePicker.data('.allowDirectoryChooser')) {
+			if (self.$filePicker.data('mimetype').indexOf('httpd/unix-directory') !== -1 || self.$filePicker.data('allowDirectoryChooser')) {
 				buttonEnableDisable.prop('disabled', false)
 			} else {
 				buttonEnableDisable.prop('disabled', true)
@@ -587,6 +625,7 @@ const Dialogs = {
 
 			$(dialogId).ocdialog({
 				closeOnEscape: true,
+				closeCallback: () => { callback && callback(false) },
 				modal: modal,
 				buttons: buttonlist
 			})
@@ -748,12 +787,12 @@ const Dialogs = {
 			$conflict.data('data', data)
 
 			$conflict.find('.filename').text(original.name)
-			$originalDiv.find('.size').text(humanFileSize(original.size))
-			$originalDiv.find('.mtime').text(formatDate(original.mtime))
+			$originalDiv.find('.size').text(OC.Util.humanFileSize(original.size))
+			$originalDiv.find('.mtime').text(OC.Util.formatDate(original.mtime))
 			// ie sucks
-			if (replacement.size && replacement.lastModifiedDate) {
-				$replacementDiv.find('.size').text(humanFileSize(replacement.size))
-				$replacementDiv.find('.mtime').text(formatDate(replacement.lastModifiedDate))
+			if (replacement.size && replacement.lastModified) {
+				$replacementDiv.find('.size').text(OC.Util.humanFileSize(replacement.size))
+				$replacementDiv.find('.mtime').text(OC.Util.formatDate(replacement.lastModified))
 			}
 			var path = original.directory + '/' + original.name
 			var urlSpec = {
@@ -784,9 +823,9 @@ const Dialogs = {
 
 			// set more recent mtime bold
 			// ie sucks
-			if (replacement.lastModifiedDate && replacement.lastModifiedDate.getTime() > original.mtime) {
+			if (replacement.lastModified > original.mtime) {
 				$replacementDiv.find('.mtime').css('font-weight', 'bold')
-			} else if (replacement.lastModifiedDate && replacement.lastModifiedDate.getTime() < original.mtime) {
+			} else if (replacement.lastModified < original.mtime) {
 				$originalDiv.find('.mtime').css('font-weight', 'bold')
 			} else {
 				// TODO add to same mtime collection?
@@ -891,7 +930,11 @@ const Dialogs = {
 					closeButton: null,
 					close: function() {
 						self._fileexistsshown = false
-						$(this).ocdialog('destroy').remove()
+						try {
+							$(this).ocdialog('destroy').remove()
+						} catch (e) {
+							// ignore
+						}
 					}
 				})
 
@@ -1121,11 +1164,13 @@ const Dialogs = {
 				self.$fileListHeader.show()
 			}
 
+			self.$filelist.empty();
+
 			$.each(files, function(idx, entry) {
 				entry.icon = OC.MimeType.getIconUrl(entry.mimetype)
 				var simpleSize, sizeColor
 				if (typeof (entry.size) !== 'undefined' && entry.size >= 0) {
-					simpleSize = humanFileSize(parseInt(entry.size, 10), true)
+					simpleSize = OC.Util.humanFileSize(parseInt(entry.size, 10), true)
 					sizeColor = Math.round(160 - Math.pow((entry.size / (1024 * 1024)), 2))
 				} else {
 					simpleSize = t('files', 'Pending')
@@ -1180,8 +1225,12 @@ const Dialogs = {
 	 * fills the tree list with directories
 	 */
 	_fillSlug: function() {
+		var addButton = this.$dirTree.find('.actions.creatable').detach()
 		this.$dirTree.empty()
 		var self = this
+
+		self.$dirTree.append(addButton)
+
 		var dir
 		var path = this.$filePicker.data('path')
 		var $template = $('<div data-dir="{dir}"><a>{name}</a></div>').addClass('crumb')
@@ -1198,10 +1247,12 @@ const Dialogs = {
 				}))
 			})
 		}
+
 		$template.octemplate({
 			dir: '',
 			name: '' // Ugly but works ;)
 		}, { escapeFunction: null }).prependTo(this.$dirTree)
+
 	},
 	/**
 	 * handle selection made in the tree list
@@ -1213,7 +1264,7 @@ const Dialogs = {
 		var getOcDialog = (event.target).closest('.oc-dialog')
 		var buttonEnableDisable = $('.primary', getOcDialog)
 		this._changeButtonsText(type, dir.split(/[/]+/).pop())
-		if (this.$filePicker.data('mimetype').indexOf('httpd/unix-directory') !== -1) {
+		if (this.$filePicker.data('mimetype').indexOf('httpd/unix-directory') !== -1 || this.$filePicker.data('allowDirectoryChooser')) {
 			buttonEnableDisable.prop('disabled', false)
 		} else {
 			buttonEnableDisable.prop('disabled', true)
@@ -1253,18 +1304,20 @@ const Dialogs = {
 		var moveText = dir === '' ? t('core', 'Move') : t('core', 'Move to {folder}', { folder: dir })
 		var buttons = $('.oc-dialog-buttonrow button')
 		switch (type) {
-		case this.FILEPICKER_TYPE_CHOOSE:
-			break
-		case this.FILEPICKER_TYPE_COPY:
-			buttons.text(copyText)
-			break
-		case this.FILEPICKER_TYPE_MOVE:
-			buttons.text(moveText)
-			break
-		case this.FILEPICKER_TYPE_COPY_MOVE:
-			buttons.eq(0).text(copyText)
-			buttons.eq(1).text(moveText)
-			break
+			case this.FILEPICKER_TYPE_CHOOSE:
+				break
+			case this.FILEPICKER_TYPE_CUSTOM:
+				break
+			case this.FILEPICKER_TYPE_COPY:
+				buttons.text(copyText)
+				break
+			case this.FILEPICKER_TYPE_MOVE:
+				buttons.text(moveText)
+				break
+			case this.FILEPICKER_TYPE_COPY_MOVE:
+				buttons.eq(0).text(copyText)
+				buttons.eq(1).text(moveText)
+				break
 		}
 	}
 }

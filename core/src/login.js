@@ -1,4 +1,4 @@
-/*
+/**
  * @copyright 2019 Christoph Wurst <christoph@winzerhof-wurst.at>
  *
  * @author 2019 Christoph Wurst <christoph@winzerhof-wurst.at>
@@ -63,6 +63,10 @@ new View({
 		autoCompleteAllowed: fromStateOr('loginAutocomplete', true),
 		resetPasswordTarget: fromStateOr('resetPasswordTarget', ''),
 		resetPasswordUser: fromStateOr('resetPasswordUser', ''),
-		directLogin: query.direct === '1'
-	}
+		directLogin: query.direct === '1',
+		hasPasswordless: fromStateOr('webauthn-available', false),
+		isHttps: window.location.protocol === 'https:',
+		hasPublicKeyCredential: typeof (window.PublicKeyCredential) !== 'undefined',
+		hideLoginForm: fromStateOr('hideLoginForm', false),
+	},
 }).$mount('#login')

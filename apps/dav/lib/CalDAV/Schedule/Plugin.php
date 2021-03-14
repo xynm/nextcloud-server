@@ -3,8 +3,12 @@
  * @copyright Copyright (c) 2016, Roeland Jago Douma <roeland@famdouma.nl>
  * @copyright Copyright (c) 2016, Joas Schilling <coding@schilljs.com>
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Daniel Kesselberg <mail@danielkesselberg.de>
+ * @author Georg Ehrke <oc.list@georgehrke.com>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Citharel <nextcloud@tcit.fr>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -19,7 +23,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +32,7 @@ namespace OCA\DAV\CalDAV\Schedule;
 use DateTimeZone;
 use OCA\DAV\CalDAV\CalDavBackend;
 use OCA\DAV\CalDAV\CalendarHome;
+use OCP\IConfig;
 use Sabre\CalDAV\ICalendar;
 use Sabre\DAV\INode;
 use Sabre\DAV\IProperties;
@@ -46,8 +51,14 @@ use Sabre\VObject\ITip;
 use Sabre\VObject\Parameter;
 use Sabre\VObject\Property;
 use Sabre\VObject\Reader;
+use function \Sabre\Uri\split;
 
 class Plugin extends \Sabre\CalDAV\Schedule\Plugin {
+
+	/**
+	 * @var IConfig
+	 */
+	private $config;
 
 	/** @var ITip\Message[] */
 	private $schedulingResponses = [];
@@ -55,13 +66,23 @@ class Plugin extends \Sabre\CalDAV\Schedule\Plugin {
 	/** @var string|null */
 	private $pathOfCalendarObjectChange = null;
 
+	public const CALENDAR_USER_TYPE = '{' . self::NS_CALDAV . '}calendar-user-type';
+	public const SCHEDULE_DEFAULT_CALENDAR_URL = '{' . Plugin::NS_CALDAV . '}schedule-default-calendar-URL';
+
+	/**
+	 * @param IConfig $config
+	 */
+	public function __construct(IConfig $config) {
+		$this->config = $config;
+	}
+
 	/**
 	 * Initializes the plugin
 	 *
 	 * @param Server $server
 	 * @return void
 	 */
-	function initialize(Server $server) {
+	public function initialize(Server $server) {
 		parent::initialize($server);
 		$server->on('propFind', [$this, 'propFindDefaultCalendarUrl'], 90);
 		$server->on('afterWriteContent', [$this, 'dispatchSchedulingResponses']);
@@ -77,16 +98,15 @@ class Plugin extends \Sabre\CalDAV\Schedule\Plugin {
 	 * @param INode $node
 	 * @return void
 	 */
-	function propFind(PropFind $propFind, INode $node) {
+	public function propFind(PropFind $propFind, INode $node) {
 		if ($node instanceof IPrincipal) {
 			// overwrite Sabre/Dav's implementation
-			$propFind->handle('{' . self::NS_CALDAV . '}calendar-user-type', function () use ($node) {
+			$propFind->handle(self::CALENDAR_USER_TYPE, function () use ($node) {
 				if ($node instanceof IProperties) {
-					$calendarUserType = '{' . self::NS_CALDAV . '}calendar-user-type';
-					$props = $node->getProperties([$calendarUserType]);
+					$props = $node->getProperties([self::CALENDAR_USER_TYPE]);
 
-					if (isset($props[$calendarUserType])) {
-						return $props[$calendarUserType];
+					if (isset($props[self::CALENDAR_USER_TYPE])) {
+						return $props[self::CALENDAR_USER_TYPE];
 					}
 				}
 
@@ -188,7 +208,7 @@ class Plugin extends \Sabre\CalDAV\Schedule\Plugin {
 		}
 
 		$dtstart = $vevent->DTSTART;
-		$dtend =  $this->getDTEndFromVEvent($vevent);
+		$dtend = $this->getDTEndFromVEvent($vevent);
 		$uid = $vevent->UID->getValue();
 		$sequence = isset($vevent->SEQUENCE) ? $vevent->SEQUENCE->getValue() : 0;
 		$recurrenceId = isset($vevent->{'RECURRENCE-ID'}) ? $vevent->{'RECURRENCE-ID'}->serialize() : '';
@@ -258,9 +278,9 @@ EOF;
 	 * @param INode $node
 	 * @return void
 	 */
-	function propFindDefaultCalendarUrl(PropFind $propFind, INode $node) {
+	public function propFindDefaultCalendarUrl(PropFind $propFind, INode $node) {
 		if ($node instanceof IPrincipal) {
-			$propFind->handle('{' . self::NS_CALDAV . '}schedule-default-calendar-URL', function() use ($node) {
+			$propFind->handle(self::SCHEDULE_DEFAULT_CALENDAR_URL, function () use ($node) {
 				/** @var \OCA\DAV\CalDAV\Plugin $caldavPlugin */
 				$caldavPlugin = $this->server->getPlugin('caldav');
 				$principalUrl = $node->getPrincipalUrl();
@@ -271,12 +291,13 @@ EOF;
 				}
 
 				if (strpos($principalUrl, 'principals/users') === 0) {
-					$uri = CalDavBackend::PERSONAL_CALENDAR_URI;
-					$displayname = CalDavBackend::PERSONAL_CALENDAR_NAME;
+					[, $userId] = split($principalUrl);
+					$uri = $this->config->getUserValue($userId, 'dav', 'defaultCalendar', CalDavBackend::PERSONAL_CALENDAR_URI);
+					$displayName = CalDavBackend::PERSONAL_CALENDAR_NAME;
 				} elseif (strpos($principalUrl, 'principals/calendar-resources') === 0 ||
 						  strpos($principalUrl, 'principals/calendar-rooms') === 0) {
 					$uri = CalDavBackend::RESOURCE_BOOKING_CALENDAR_URI;
-					$displayname = CalDavBackend::RESOURCE_BOOKING_CALENDAR_NAME;
+					$displayName = CalDavBackend::RESOURCE_BOOKING_CALENDAR_NAME;
 				} else {
 					// How did we end up here?
 					// TODO - throw exception or just ignore?
@@ -287,7 +308,7 @@ EOF;
 				$calendarHome = $this->server->tree->getNodeForPath($calendarHomePath);
 				if (!$calendarHome->childExists($uri)) {
 					$calendarHome->getCalDAVBackend()->createCalendar($principalUrl, $uri, [
-						'{DAV:}displayname' => $displayname,
+						'{DAV:}displayname' => $displayName,
 					]);
 				}
 
@@ -305,7 +326,7 @@ EOF;
 	 * Returns a list of addresses that are associated with a principal.
 	 *
 	 * @param string $principal
-	 * @return string?
+	 * @return string|null
 	 */
 	protected function getCalendarUserTypeForPrincipal($principal):?string {
 		$calendarUserType = '{' . self::NS_CALDAV . '}calendar-user-type';
@@ -434,20 +455,20 @@ EOF;
 							'start' => $start,
 							'end' => $end,
 						],
-						'comp-filters'   => [],
-						'prop-filters'   => [],
+						'comp-filters' => [],
+						'prop-filters' => [],
 					],
 					[
 						'name' => 'VEVENT',
 						'is-not-defined' => false,
 						'time-range' => null,
-						'comp-filters'   => [],
-						'prop-filters'   => [
+						'comp-filters' => [],
+						'prop-filters' => [
 							[
-								'name'           => 'UID',
+								'name' => 'UID',
 								'is-not-defined' => false,
-								'time-range'     => null,
-								'text-match'     => [
+								'time-range' => null,
+								'text-match' => [
 									'value' => $ignoreUID,
 									'negate-condition' => true,
 									'collation' => 'i;octet',
@@ -528,7 +549,7 @@ EOF;
 	 * @return string
 	 */
 	private function stripOffMailTo(string $email): string {
-		if (stripos($email, 'mailto:')  === 0) {
+		if (stripos($email, 'mailto:') === 0) {
 			return substr($email, 7);
 		}
 

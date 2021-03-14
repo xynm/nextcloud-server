@@ -1,7 +1,9 @@
 <?php
-
 /**
+ *
+ *
  * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -16,7 +18,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +41,7 @@ class SecurityFilterTest extends TestCase {
 	/** @var SecurityFilter */
 	private $filter;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);
@@ -60,11 +62,11 @@ class SecurityFilterTest extends TestCase {
 		$this->urlGenerator->expects($this->once())
 			->method('imagePath')
 			->with('core', 'actions/password.svg')
-			->will($this->returnValue('path/to/icon.svg'));
+			->willReturn('path/to/icon.svg');
 		$this->urlGenerator->expects($this->once())
 			->method('getAbsoluteURL')
 			->with('path/to/icon.svg')
-			->will($this->returnValue('abs/path/to/icon.svg'));
+			->willReturn('abs/path/to/icon.svg');
 		$this->assertEquals('abs/path/to/icon.svg', $this->filter->getIcon());
 	}
 
@@ -76,12 +78,11 @@ class SecurityFilterTest extends TestCase {
 		$this->l10n->expects($this->once())
 			->method('t')
 			->with('Security')
-			->will($this->returnValue('translated'));
+			->willReturn('translated');
 		$this->assertEquals('translated', $this->filter->getName());
 	}
 
 	public function testGetPriority() {
 		$this->assertEquals(30, $this->filter->getPriority());
 	}
-
 }

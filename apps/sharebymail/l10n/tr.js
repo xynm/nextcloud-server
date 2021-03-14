@@ -50,6 +50,6 @@ OC.L10N.register(
     "Allows users to share a personalized link to a file or folder by putting in an email address." : "Kullanıcıların bir e-posta adresi yazarak bir dosya ya da klasör için kişisel bir bağlantı paylaşmasını sağlar.",
     "Send password by mail" : "Parolayı e-posta ile gönder",
     "Enforce password protection" : "Parola koruması dayatılsın",
-    "Password to access »%1$s« shared with %2$s" : "»%1$s« için %2$s üzerinden paylaşılan erişim parolası"
+    "Reply to initiator" : "Başlatanı yanıtla"
 },
 "nplurals=2; plural=(n > 1);");

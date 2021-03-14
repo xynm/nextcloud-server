@@ -39,7 +39,7 @@ class CreateSessionTokenCommandTest extends ALoginCommandTest {
 	/** @var Session|MockObject */
 	private $userSession;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->config = $this->createMock(IConfig::class);
@@ -117,5 +117,4 @@ class CreateSessionTokenCommandTest extends ALoginCommandTest {
 		$this->assertTrue($result->isSuccess());
 		$this->assertFalse($data->isRememberLogin());
 	}
-
 }

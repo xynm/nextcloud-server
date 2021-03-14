@@ -23,7 +23,6 @@
 
 namespace Tests\Core\Command\User;
 
-
 use OC\Core\Command\User\Disable;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -32,17 +31,17 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Test\TestCase;
 
 class DisableTest extends TestCase {
-	/** @var IUserManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IUserManager|\PHPUnit\Framework\MockObject\MockObject */
 	protected $userManager;
-	/** @var InputInterface|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var InputInterface|\PHPUnit\Framework\MockObject\MockObject */
 	protected $consoleInput;
-	/** @var OutputInterface|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var OutputInterface|\PHPUnit\Framework\MockObject\MockObject */
 	protected $consoleOutput;
 
 	/** @var Disable */
 	protected $command;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->userManager = $this->createMock(IUserManager::class);

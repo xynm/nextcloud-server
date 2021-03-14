@@ -24,31 +24,31 @@ const valueMixin = {
 	props: {
 		value: {
 			type: String,
-			default: ''
+			default: '',
 		},
 		check: {
 			type: Object,
-			default: () => { return {} }
-		}
+			default: () => { return {} },
+		},
 	},
 	data() {
 		return {
-			newValue: ''
+			newValue: '',
 		}
 	},
 	watch: {
 		value: {
 			immediate: true,
-			handler: function(value) {
+			handler(value) {
 				this.updateInternalValue(value)
-			}
-		}
+			},
+		},
 	},
 	methods: {
 		updateInternalValue(value) {
 			this.newValue = value
-		}
-	}
+		},
+	},
 }
 
 export default valueMixin

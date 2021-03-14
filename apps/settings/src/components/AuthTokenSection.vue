@@ -21,7 +21,7 @@
 
 <template>
 	<div id="security" class="section">
-		<h2>{{ t('settings', 'Devices & sessions') }}</h2>
+		<h2>{{ t('settings', 'Devices & sessions', {}, undefined, {sanitize: false}) }}</h2>
 		<p class="settings-hint hidden-when-empty">
 			{{ t('settings', 'Web, desktop and mobile clients currently logged in to your account.') }}
 		</p>
@@ -36,7 +36,8 @@
 
 <script>
 import axios from '@nextcloud/axios'
-import confirmPassword from 'nextcloud-password-confirmation'
+import confirmPassword from '@nextcloud/password-confirmation'
+import { generateUrl } from '@nextcloud/router'
 
 import AuthTokenList from './AuthTokenList'
 import AuthTokenSetupDialogue from './AuthTokenSetupDialogue'
@@ -44,8 +45,8 @@ import AuthTokenSetupDialogue from './AuthTokenSetupDialogue'
 const confirm = () => {
 	return new Promise(resolve => {
 		OC.dialogs.confirm(
-			t('core', 'Do you really want to wipe your data from this device?'),
-			t('core', 'Confirm wipe'),
+			t('settings', 'Do you really want to wipe your data from this device?'),
+			t('settings', 'Confirm wipe'),
 			resolve,
 			true
 		)
@@ -66,21 +67,21 @@ export default {
 	name: 'AuthTokenSection',
 	components: {
 		AuthTokenSetupDialogue,
-		AuthTokenList
+		AuthTokenList,
 	},
 	props: {
 		tokens: {
 			type: Array,
-			required: true
+			required: true,
 		},
 		canCreateToken: {
 			type: Boolean,
-			required: true
-		}
+			required: true,
+		},
 	},
 	data() {
 		return {
-			baseUrl: OC.generateUrl('/settings/personal/authtokens')
+			baseUrl: generateUrl('/settings/personal/authtokens'),
 		}
 	},
 	methods: {
@@ -88,7 +89,7 @@ export default {
 			console.debug('creating a new app token', name)
 
 			const data = {
-				name
+				name,
 			}
 			return axios.post(this.baseUrl, data)
 				.then(resp => resp.data)
@@ -172,8 +173,8 @@ export default {
 				console.error('could not wipe app token', err)
 				OC.Notification.showTemporary(t('core', 'Error while wiping the device with the token'))
 			}
-		}
-	}
+		},
+	},
 }
 </script>
 

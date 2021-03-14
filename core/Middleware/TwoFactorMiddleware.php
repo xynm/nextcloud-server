@@ -2,7 +2,7 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
- * @author Christoph Wurst <christoph@owncloud.com>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
@@ -19,7 +19,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -114,7 +114,7 @@ class TwoFactorMiddleware extends Middleware {
 
 			if ($this->session->exists('app_password') || $this->twoFactorManager->isTwoFactorAuthenticated($user)) {
 				$this->checkTwoFactor($controller, $methodName, $user);
-			} else if ($controller instanceof TwoFactorChallengeController) {
+			} elseif ($controller instanceof TwoFactorChallengeController) {
 				// Allow access to the two-factor controllers only if two-factor authentication
 				// is in progress.
 				throw new UserAlreadyLoggedInException();
@@ -155,5 +155,4 @@ class TwoFactorMiddleware extends Middleware {
 
 		throw $exception;
 	}
-
 }

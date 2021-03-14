@@ -23,6 +23,7 @@
 <template>
 	<Multiselect ref="multiselect"
 		class="sharing-input"
+		:clear-on-select="true"
 		:disabled="!canReshare"
 		:hide-selected="true"
 		:internal-search="false"
@@ -33,6 +34,9 @@
 		:preserve-search="true"
 		:searchable="true"
 		:user-select="true"
+		open-direction="below"
+		label="displayName"
+		track-by="id"
 		@search-change="asyncFind"
 		@select="addShare">
 		<template #noOptions>
@@ -49,7 +53,7 @@ import { generateOcsUrl } from '@nextcloud/router'
 import { getCurrentUser } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 import debounce from 'debounce'
-import Multiselect from 'nextcloud-vue/dist/Components/Multiselect'
+import Multiselect from '@nextcloud/vue/dist/Components/Multiselect'
 
 import Config from '../services/ConfigService'
 import Share from '../models/Share'
@@ -60,7 +64,7 @@ export default {
 	name: 'SharingInput',
 
 	components: {
-		Multiselect
+		Multiselect,
 	},
 
 	mixins: [ShareTypes, ShareRequests],
@@ -69,26 +73,26 @@ export default {
 		shares: {
 			type: Array,
 			default: () => [],
-			required: true
+			required: true,
 		},
 		linkShares: {
 			type: Array,
 			default: () => [],
-			required: true
+			required: true,
 		},
 		fileInfo: {
 			type: Object,
 			default: () => {},
-			required: true
+			required: true,
 		},
 		reshare: {
 			type: Share,
-			default: null
+			default: null,
 		},
 		canReshare: {
 			type: Boolean,
-			required: true
-		}
+			required: true,
+		},
 	},
 
 	data() {
@@ -98,7 +102,7 @@ export default {
 			query: '',
 			recommendations: [],
 			ShareSearch: OCA.Sharing.ShareSearch.state,
-			suggestions: []
+			suggestions: [],
 		}
 	},
 
@@ -116,22 +120,16 @@ export default {
 		},
 		inputPlaceholder() {
 			const allowRemoteSharing = this.config.isRemoteShareAllowed
-			const allowMailSharing = this.config.isMailShareAllowed
 
 			if (!this.canReshare) {
 				return t('files_sharing', 'Resharing is not allowed')
 			}
-			if (!allowRemoteSharing && allowMailSharing) {
-				return t('files_sharing', 'Name or email address...')
-			}
-			if (allowRemoteSharing && !allowMailSharing) {
-				return t('files_sharing', 'Name or federated cloud ID...')
-			}
-			if (allowRemoteSharing && allowMailSharing) {
-				return t('files_sharing', 'Name, federated cloud ID or email address...')
+			// We can always search with email addresses for users too
+			if (!allowRemoteSharing) {
+				return t('files_sharing', 'Name or email …')
 			}
 
-			return 	t('files_sharing', 'Name...')
+			return t('files_sharing', 'Name, email, or Federated Cloud ID …')
 		},
 
 		isValidQuery() {
@@ -147,10 +145,10 @@ export default {
 
 		noResultText() {
 			if (this.loading) {
-				return t('files_sharing', 'Searching...')
+				return t('files_sharing', 'Searching …')
 			}
 			return t('files_sharing', 'No elements found.')
-		}
+		},
 	},
 
 	mounted() {
@@ -176,10 +174,27 @@ export default {
 		 * @param {string} search the search query
 		 * @param {boolean} [lookup=false] search on lookup server
 		 */
-		async getSuggestions(search, lookup) {
+		async getSuggestions(search, lookup = false) {
 			this.loading = true
-			lookup = lookup || false
-			console.info(search, lookup)
+
+			if (OC.getCapabilities().files_sharing.sharee.query_lookup_default === true) {
+				lookup = true
+			}
+
+			const shareType = [
+				this.SHARE_TYPES.SHARE_TYPE_USER,
+				this.SHARE_TYPES.SHARE_TYPE_GROUP,
+				this.SHARE_TYPES.SHARE_TYPE_REMOTE,
+				this.SHARE_TYPES.SHARE_TYPE_REMOTE_GROUP,
+				this.SHARE_TYPES.SHARE_TYPE_CIRCLE,
+				this.SHARE_TYPES.SHARE_TYPE_ROOM,
+				this.SHARE_TYPES.SHARE_TYPE_GUEST,
+				this.SHARE_TYPES.SHARE_TYPE_DECK,
+			]
+
+			if (OC.getCapabilities().files_sharing.public.enabled === true) {
+				shareType.push(this.SHARE_TYPES.SHARE_TYPE_EMAIL)
+			}
 
 			const request = await axios.get(generateOcsUrl('apps/files_sharing/api/v1') + 'sharees', {
 				params: {
@@ -187,8 +202,9 @@ export default {
 					itemType: this.fileInfo.type === 'dir' ? 'folder' : 'file',
 					search,
 					lookup,
-					perPage: this.config.maxAutocompleteResults
-				}
+					perPage: this.config.maxAutocompleteResults,
+					shareType,
+				},
 			})
 
 			if (request.data.ocs.meta.statuscode !== 100) {
@@ -207,23 +223,49 @@ export default {
 			// remove invalid data and format to user-select layout
 			const exactSuggestions = this.filterOutExistingShares(rawExactSuggestions)
 				.map(share => this.formatForMultiselect(share))
+				// sort by type so we can get user&groups first...
+				.sort((a, b) => a.shareType - b.shareType)
 			const suggestions = this.filterOutExistingShares(rawSuggestions)
 				.map(share => this.formatForMultiselect(share))
+				// sort by type so we can get user&groups first...
+				.sort((a, b) => a.shareType - b.shareType)
 
 			// lookup clickable entry
+			// show if enabled and not already requested
 			const lookupEntry = []
-			if (data.lookupEnabled) {
+			if (data.lookupEnabled && !lookup) {
 				lookupEntry.push({
+					id: 'global-lookup',
 					isNoUser: true,
 					displayName: t('files_sharing', 'Search globally'),
-					lookup: true
+					lookup: true,
 				})
 			}
 
 			// if there is a condition specified, filter it
 			const externalResults = this.externalResults.filter(result => !result.condition || result.condition(this))
 
-			this.suggestions = exactSuggestions.concat(suggestions).concat(externalResults).concat(lookupEntry)
+			const allSuggestions = exactSuggestions.concat(suggestions).concat(externalResults).concat(lookupEntry)
+
+			// Count occurances of display names in order to provide a distinguishable description if needed
+			const nameCounts = allSuggestions.reduce((nameCounts, result) => {
+				if (!result.displayName) {
+					return nameCounts
+				}
+				if (!nameCounts[result.displayName]) {
+					nameCounts[result.displayName] = 0
+				}
+				nameCounts[result.displayName]++
+				return nameCounts
+			}, {})
+
+			this.suggestions = allSuggestions.map(item => {
+				// Make sure that items with duplicate displayName get the shareWith applied as a description
+				if (nameCounts[item.displayName] > 1 && !item.desc) {
+					return { ...item, desc: item.shareWithDisplayNameUnique }
+				}
+				return item
+			})
 
 			this.loading = false
 			console.info('suggestions', this.suggestions)
@@ -247,14 +289,16 @@ export default {
 			const request = await axios.get(generateOcsUrl('apps/files_sharing/api/v1') + 'sharees_recommended', {
 				params: {
 					format: 'json',
-					itemType: this.fileInfo.type
-				}
+					itemType: this.fileInfo.type,
+				},
 			})
 
 			if (request.data.ocs.meta.statuscode !== 100) {
 				console.error('Error fetching recommendations', request)
 				return
 			}
+
+			const externalResults = this.externalResults.filter(result => !result.condition || result.condition(this))
 
 			const exact = request.data.ocs.data.exact
 
@@ -264,6 +308,7 @@ export default {
 			// remove invalid data and format to user-select layout
 			this.recommendations = this.filterOutExistingShares(rawRecommendations)
 				.map(share => this.formatForMultiselect(share))
+				.concat(externalResults)
 
 			this.loading = false
 			console.info('recommendations', this.recommendations)
@@ -283,14 +328,16 @@ export default {
 					return arr
 				}
 				try {
-					// filter out current user
-					if (share.value.shareWith === getCurrentUser().uid) {
-						return arr
-					}
+					if (share.value.shareType === this.SHARE_TYPES.SHARE_TYPE_USER) {
+						// filter out current user
+						if (share.value.shareWith === getCurrentUser().uid) {
+							return arr
+						}
 
-					// filter out the owner of the share
-					if (this.reshare && share.value.shareWith === this.reshare.owner) {
-						return arr
+						// filter out the owner of the share
+						if (this.reshare && share.value.shareWith === this.reshare.owner) {
+							return arr
+						}
 					}
 
 					// filter out existing mail shares
@@ -346,6 +393,8 @@ export default {
 				return 'icon-circle'
 			case this.SHARE_TYPES.SHARE_TYPE_ROOM:
 				return 'icon-room'
+			case this.SHARE_TYPES.SHARE_TYPE_DECK:
+				return 'icon-deck'
 
 			default:
 				return ''
@@ -358,23 +407,29 @@ export default {
 		 * @returns {Object}
 		 */
 		formatForMultiselect(result) {
-			let desc
-			if ((result.value.shareType === this.SHARE_TYPES.SHARE_TYPE_REMOTE
+			let subtitle
+			if (result.value.shareType === this.SHARE_TYPES.SHARE_TYPE_USER && this.config.shouldAlwaysShowUnique) {
+				subtitle = result.shareWithDisplayNameUnique ?? ''
+			} else if ((result.value.shareType === this.SHARE_TYPES.SHARE_TYPE_REMOTE
 					|| result.value.shareType === this.SHARE_TYPES.SHARE_TYPE_REMOTE_GROUP
 			) && result.value.server) {
-				desc = t('files_sharing', 'on {server}', { server: result.value.server })
+				subtitle = t('files_sharing', 'on {server}', { server: result.value.server })
 			} else if (result.value.shareType === this.SHARE_TYPES.SHARE_TYPE_EMAIL) {
-				desc = result.value.shareWith
+				subtitle = result.value.shareWith
+			} else {
+				subtitle = result.shareWithDescription ?? ''
 			}
 
 			return {
+				id: `${result.value.shareType}-${result.value.shareWith}`,
 				shareWith: result.value.shareWith,
 				shareType: result.value.shareType,
 				user: result.uuid || result.value.shareWith,
-				isNoUser: !result.uuid,
+				isNoUser: result.value.shareType !== this.SHARE_TYPES.SHARE_TYPE_USER,
 				displayName: result.name || result.label,
-				desc,
-				icon: this.shareTypeToIcon(result.value.shareType)
+				subtitle,
+				shareWithDisplayNameUnique: result.shareWithDisplayNameUnique || '',
+				icon: this.shareTypeToIcon(result.value.shareType),
 			}
 		},
 
@@ -384,8 +439,17 @@ export default {
 		 */
 		async addShare(value) {
 			if (value.lookup) {
-				return this.getSuggestions(this.query, true)
+				await this.getSuggestions(this.query, true)
+
+				// focus the input again
+				this.$nextTick(() => {
+					this.$refs.multiselect.$el.querySelector('.multiselect__input').focus()
+				})
+				return true
 			}
+
+			// TODO: reset the search string when done
+			// https://github.com/shentao/vue-multiselect/issues/633
 
 			// handle externalResults from OCA.Sharing.ShareSearch
 			if (value.handler) {
@@ -400,7 +464,8 @@ export default {
 				const share = await this.createShare({
 					path,
 					shareType: value.shareType,
-					shareWith: value.shareWith
+					shareWith: value.shareWith,
+					permissions: this.fileInfo.sharePermissions & OC.getCapabilities().files_sharing.default_permissions,
 				})
 				this.$emit('add:share', share)
 
@@ -416,8 +481,8 @@ export default {
 			} finally {
 				this.loading = false
 			}
-		}
-	}
+		},
+	},
 }
 </script>
 

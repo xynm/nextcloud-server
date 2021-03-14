@@ -20,7 +20,7 @@
 	 * @param {Array.<string>} [options.systemTagIds] array of system tag ids to
 	 * filter by
 	 */
-	var FileList = function($el, options) {
+	const FileList = function($el, options) {
 		this.initialize($el, options)
 	}
 	FileList.prototype = _.extend(
@@ -48,7 +48,7 @@
 			 * @param {Object} $el container element
 			 * @param {Object} [options] map of options, see other parameters
 			 */
-			initialize: function($el, options) {
+			initialize($el, options) {
 				OCA.Files.FileList.prototype.initialize.apply(this, arguments)
 				if (this.initialized) {
 					return
@@ -60,31 +60,31 @@
 
 				OC.Plugins.attach('OCA.SystemTags.FileList', this)
 
-				var $controls = this.$el.find('#controls').empty()
+				const $controls = this.$el.find('#controls').empty()
 
 				_.defer(_.bind(this._getLastUsedTags, this))
 				this._initFilterField($controls)
 			},
 
-			destroy: function() {
+			destroy() {
 				this.$filterField.remove()
 
 				OCA.Files.FileList.prototype.destroy.apply(this, arguments)
 			},
 
-			_getLastUsedTags: function() {
-				var self = this
+			_getLastUsedTags() {
+				const self = this
 				$.ajax({
 					type: 'GET',
 					url: OC.generateUrl('/apps/systemtags/lastused'),
-					success: function(response) {
+					success(response) {
 						self._lastUsedTags = response
-					}
+					},
 				})
 			},
 
-			_initFilterField: function($container) {
-				var self = this
+			_initFilterField($container) {
+				const self = this
 				this.$filterField = $('<input type="hidden" name="tags"/>')
 				$container.append(this.$filterField)
 				this.$filterField.select2({
@@ -95,22 +95,22 @@
 					separator: ',',
 					query: _.bind(this._queryTagsAutocomplete, this),
 
-					id: function(tag) {
+					id(tag) {
 						return tag.id
 					},
 
-					initSelection: function(element, callback) {
-						var val = $(element)
+					initSelection(element, callback) {
+						const val = $(element)
 							.val()
 							.trim()
 						if (val) {
-							var tagIds = val.split(',')
-							var tags = []
+							const tagIds = val.split(',')
+							const tags = []
 
 							OC.SystemTags.collection.fetch({
-								success: function() {
+								success() {
 									_.each(tagIds, function(tagId) {
-										var tag = OC.SystemTags.collection.get(
+										const tag = OC.SystemTags.collection.get(
 											tagId
 										)
 										if (!_.isUndefined(tag)) {
@@ -119,7 +119,7 @@
 									})
 
 									callback(tags)
-								}
+								},
 							})
 						} else {
 							// eslint-disable-next-line standard/no-callback-literal
@@ -127,19 +127,19 @@
 						}
 					},
 
-					formatResult: function(tag) {
+					formatResult(tag) {
 						return OC.SystemTags.getDescriptiveTag(tag)
 					},
 
-					formatSelection: function(tag) {
+					formatSelection(tag) {
 						return OC.SystemTags.getDescriptiveTag(tag)[0]
 							.outerHTML
 					},
 
-					sortResults: function(results) {
+					sortResults(results) {
 						results.sort(function(a, b) {
-							var aLastUsed = self._lastUsedTags.indexOf(a.id)
-							var bLastUsed = self._lastUsedTags.indexOf(b.id)
+							const aLastUsed = self._lastUsedTags.indexOf(a.id)
+							const bLastUsed = self._lastUsedTags.indexOf(b.id)
 
 							if (aLastUsed !== bLastUsed) {
 								if (bLastUsed === -1) {
@@ -157,13 +157,13 @@
 						return results
 					},
 
-					escapeMarkup: function(m) {
+					escapeMarkup(m) {
 						// prevent double markup escape
 						return m
 					},
-					formatNoMatches: function() {
+					formatNoMatches() {
 						return t('systemtags', 'No tags found')
-					}
+					},
 				})
 				this.$filterField.on(
 					'change',
@@ -177,17 +177,17 @@
 			 *
 			 * @param {Object} query select2 query object
 			 */
-			_queryTagsAutocomplete: function(query) {
+			_queryTagsAutocomplete(query) {
 				OC.SystemTags.collection.fetch({
-					success: function() {
-						var results = OC.SystemTags.collection.filterByName(
+					success() {
+						const results = OC.SystemTags.collection.filterByName(
 							query.term
 						)
 
 						query.callback({
-							results: _.invoke(results, 'toJSON')
+							results: _.invoke(results, 'toJSON'),
 						})
-					}
+					},
 				})
 			},
 
@@ -196,9 +196,9 @@
 			 *
 			 * @param {Event} e the urlchanged event
 			 */
-			_onUrlChanged: function(e) {
+			_onUrlChanged(e) {
 				if (e.dir) {
-					var tags = _.filter(e.dir.split('/'), function(val) {
+					const tags = _.filter(e.dir.split('/'), function(val) {
 						return val.trim() !== ''
 					})
 					this.$filterField.select2('val', tags || [])
@@ -207,8 +207,8 @@
 				}
 			},
 
-			_onTagsChanged: function(ev) {
-				var val = $(ev.target)
+			_onTagsChanged(ev) {
+				const val = $(ev.target)
 					.val()
 					.trim()
 				if (val !== '') {
@@ -219,14 +219,14 @@
 
 				this.$el.trigger(
 					$.Event('changeDirectory', {
-						dir: this._systemTagIds.join('/')
+						dir: this._systemTagIds.join('/'),
 					})
 				)
 				this.reload()
 			},
 
-			updateEmptyContent: function() {
-				var dir = this.getCurrentDirectory()
+			updateEmptyContent() {
+				const dir = this.getCurrentDirectory()
 				if (dir === '/') {
 					// root has special permissions
 					if (!this._systemTagIds.length) {
@@ -270,16 +270,16 @@
 				}
 			},
 
-			getDirectoryPermissions: function() {
+			getDirectoryPermissions() {
 				return OC.PERMISSION_READ | OC.PERMISSION_DELETE
 			},
 
-			updateStorageStatistics: function() {
+			updateStorageStatistics() {
 				// no op because it doesn't have
 				// storage info like free space / used space
 			},
 
-			reload: function() {
+			reload() {
 				// there is only root
 				this._setCurrentDir('/', false)
 
@@ -300,21 +300,21 @@
 				this.showMask()
 				this._reloadCall = this.filesClient.getFilteredFiles(
 					{
-						systemTagIds: this._systemTagIds
+						systemTagIds: this._systemTagIds,
 					},
 					{
-						properties: this._getWebdavProperties()
+						properties: this._getWebdavProperties(),
 					}
 				)
 				if (this._detailsView) {
 					// close sidebar
 					this._updateDetailsView(null)
 				}
-				var callBack = this.reloadCallback.bind(this)
+				const callBack = this.reloadCallback.bind(this)
 				return this._reloadCall.then(callBack, callBack)
 			},
 
-			reloadCallback: function(status, result) {
+			reloadCallback(status, result) {
 				if (result) {
 					// prepend empty dir info because original handler
 					result.unshift({})
@@ -325,7 +325,7 @@
 					status,
 					result
 				)
-			}
+			},
 		}
 	)
 

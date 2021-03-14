@@ -25,9 +25,9 @@ OC.L10N.register(
     "Decline" : "Refusar",
     "Share with me through my #Nextcloud Federated Cloud ID, see %s" : "Comparti con me per mi ID de Nube Federate #Nextcloud, vide %s",
     "Share with me through my #Nextcloud Federated Cloud ID" : "Comparti con me per mi ID de Nube Federate #Nextcloud",
+    "Sharing" : "Compartente",
     "Federated Cloud Sharing" : "Compartimento del Nube Federate",
     "Open documentation" : "Documentation aperte",
-    "Allow users on this server to send shares to other servers" : "Permitter usatores in iste servitor a inviar elementos compartite a altere servitores",
     "Allow users on this server to receive shares from other servers" : "Permitter usatores in iste servitor a reciper elementos compartite ex altere servitores",
     "Search global and public address book for users" : "Cercar pro usatores in adressarios global e public",
     "Federated Cloud" : "Nube Federate",
@@ -35,7 +35,6 @@ OC.L10N.register(
     "Add to your website" : "Adde a tu sito web",
     "Share with me via Nextcloud" : "Comparti con me via Nextcloud",
     "HTML Code:" : "Codice HTML:",
-    "You received \"%3$s\" as a remote share from %1$s (on behalf of %2$s)" : "Tu recipeva \"%3$s\" como un compartimento remote de %1$s (in nomine de %2$s)",
-    "You received \"%3$s\" as a remote share from %1$s" : "Tu recipeva \"%3$s\" como un compartimento remote de %1$s"
+    "Allow users on this server to send shares to other servers" : "Permitter usatores in iste servitor a inviar elementos compartite a altere servitores"
 },
 "nplurals=2; plural=(n != 1);");

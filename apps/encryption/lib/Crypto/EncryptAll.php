@@ -2,7 +2,9 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Bjoern Schiessle <bjoern@schiessle.org>
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Kenneth Newwood <kenneth@newwood.name>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
@@ -20,7 +22,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -119,7 +121,7 @@ class EncryptAll {
 		$this->questionHelper = $questionHelper;
 		$this->secureRandom = $secureRandom;
 		// store one time passwords for the users
-		$this->userPasswords = array();
+		$this->userPasswords = [];
 	}
 
 	/**
@@ -129,7 +131,6 @@ class EncryptAll {
 	 * @param OutputInterface $output
 	 */
 	public function encryptAll(InputInterface $input, OutputInterface $output) {
-
 		$this->input = $input;
 		$this->output = $output;
 
@@ -182,7 +183,7 @@ class EncryptAll {
 		$progress->setFormat(" %message% \n [%bar%]");
 		$progress->start();
 
-		foreach($this->userManager->getBackends() as $backend) {
+		foreach ($this->userManager->getBackends() as $backend) {
 			$limit = 500;
 			$offset = 0;
 			do {
@@ -201,7 +202,7 @@ class EncryptAll {
 					}
 				}
 				$offset += $limit;
-			} while(count($users) >= $limit);
+			} while (count($users) >= $limit);
 		}
 
 		$progress->setMessage('Key-pair created for all users');
@@ -229,7 +230,6 @@ class EncryptAll {
 		}
 		$progress->setMessage("all files encrypted");
 		$progress->finish();
-
 	}
 
 	/**
@@ -239,7 +239,7 @@ class EncryptAll {
 	 */
 	protected function encryptAllUserFilesWithMasterKey(ProgressBar $progress) {
 		$userNo = 1;
-		foreach($this->userManager->getBackends() as $backend) {
+		foreach ($this->userManager->getBackends() as $backend) {
 			$limit = 500;
 			$offset = 0;
 			do {
@@ -250,7 +250,7 @@ class EncryptAll {
 					$userNo++;
 				}
 				$offset += $limit;
-			} while(count($users) >= $limit);
+			} while (count($users) >= $limit);
 		}
 	}
 
@@ -262,12 +262,11 @@ class EncryptAll {
 	 * @param string $userCount
 	 */
 	protected function encryptUsersFiles($uid, ProgressBar $progress, $userCount) {
-
 		$this->setupUserFS($uid);
-		$directories = array();
-		$directories[] =  '/' . $uid . '/files';
+		$directories = [];
+		$directories[] = '/' . $uid . '/files';
 
-		while($root = array_pop($directories)) {
+		while ($root = array_pop($directories)) {
 			$content = $this->rootView->getDirectoryContent($root);
 			foreach ($content as $file) {
 				$path = $root . '/' . $file['name'];
@@ -277,7 +276,7 @@ class EncryptAll {
 				} else {
 					$progress->setMessage("encrypt files for user $userCount: $path");
 					$progress->advance();
-					if($this->encryptFile($path) === false) {
+					if ($this->encryptFile($path) === false) {
 						$progress->setMessage("encrypt files for user $userCount: $path (already encrypted)");
 						$progress->advance();
 					}
@@ -321,11 +320,11 @@ class EncryptAll {
 	 */
 	protected function outputPasswords() {
 		$table = new Table($this->output);
-		$table->setHeaders(array('Username', 'Private key password'));
+		$table->setHeaders(['Username', 'Private key password']);
 
 		//create rows
-		$newPasswords = array();
-		$unchangedPasswords = array();
+		$newPasswords = [];
+		$unchangedPasswords = [];
 		foreach ($this->userPasswords as $uid => $password) {
 			if (empty($password)) {
 				$unchangedPasswords[] = $uid;
@@ -418,13 +417,13 @@ class EncryptAll {
 				$recipientDisplayName = $recipient->getDisplayName();
 				$to = $recipient->getEMailAddress();
 
-				if ($to === '') {
+				if ($to === '' || $to === null) {
 					$noMail[] = $uid;
 					continue;
 				}
 
-				$subject = (string)$this->l->t('one-time password for server-side-encryption');
-				list($htmlBody, $textBody) = $this->createMailBody($password);
+				$subject = $this->l->t('one-time password for server-side-encryption');
+				[$htmlBody, $textBody] = $this->createMailBody($password);
 
 				// send it out now
 				try {
@@ -450,7 +449,7 @@ class EncryptAll {
 			$this->output->writeln("\n\nPassword successfully send to all users");
 		} else {
 			$table = new Table($this->output);
-			$table->setHeaders(array('Username', 'Private key password'));
+			$table->setHeaders(['Username', 'Private key password']);
 			$this->output->writeln("\n\nCould not send password to following users:\n");
 			$rows = [];
 			foreach ($noMail as $uid) {
@@ -459,7 +458,6 @@ class EncryptAll {
 			$table->setRows($rows);
 			$table->render();
 		}
-
 	}
 
 	/**
@@ -469,16 +467,14 @@ class EncryptAll {
 	 * @return array an array of the html mail body and the plain text mail body
 	 */
 	protected function createMailBody($password) {
-
 		$html = new \OC_Template("encryption", "mail", "");
-		$html->assign ('password', $password);
+		$html->assign('password', $password);
 		$htmlMail = $html->fetchPage();
 
 		$plainText = new \OC_Template("encryption", "altmail", "");
-		$plainText->assign ('password', $password);
+		$plainText->assign('password', $password);
 		$plainTextMail = $plainText->fetchPage();
 
 		return [$htmlMail, $plainTextMail];
 	}
-
 }

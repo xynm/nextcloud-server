@@ -34,39 +34,40 @@
 </template>
 
 <script>
-import { Multiselect } from 'nextcloud-vue/dist/Components/Multiselect'
+import Multiselect from '@nextcloud/vue/dist/Components/Multiselect'
 import axios from '@nextcloud/axios'
+import { generateOcsUrl } from '@nextcloud/router'
 
 const groups = []
 const status = {
-	isLoading: false
+	isLoading: false,
 }
 
 export default {
 	name: 'RequestUserGroup',
 	components: {
-		Multiselect
+		Multiselect,
 	},
 	props: {
 		value: {
 			type: String,
-			default: ''
+			default: '',
 		},
 		check: {
 			type: Object,
-			default: () => { return {} }
-		}
+			default: () => { return {} },
+		},
 	},
 	data() {
 		return {
-			groups: groups,
-			status: status
+			groups,
+			status,
 		}
 	},
 	computed: {
 		currentValue() {
 			return this.groups.find(group => group.id === this.value) || null
-		}
+		},
 	},
 	async mounted() {
 		if (this.groups.length === 0) {
@@ -83,14 +84,13 @@ export default {
 			}
 
 			this.status.isLoading = true
-			return axios.get(OC.linkToOCS('cloud', 2) + 'groups?limit=20&search=' + encodeURI(searchQuery)).then((response) => {
-				response.data.ocs.data.groups.reduce((obj, item) => {
-					obj.push({
-						id: item,
-						displayname: item
+			return axios.get(generateOcsUrl('cloud', 2) + 'groups/details?limit=20&search=' + encodeURI(searchQuery)).then((response) => {
+				response.data.ocs.data.groups.forEach((group) => {
+					this.addGroup({
+						id: group.id,
+						displayname: group.displayname,
 					})
-					return obj
-				}, []).forEach((group) => this.addGroup(group))
+				})
 				this.status.isLoading = false
 			}, (error) => {
 				console.error('Error while loading group list', error.response)
@@ -101,8 +101,8 @@ export default {
 			if (index === -1) {
 				this.groups.push(group)
 			}
-		}
-	}
+		},
+	},
 }
 </script>
 <style scoped>

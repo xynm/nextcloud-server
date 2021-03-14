@@ -18,7 +18,7 @@
 
 	OCA.SystemTags.App = {
 
-		initFileList: function($el) {
+		initFileList($el) {
 			if (this._fileList) {
 				return this._fileList
 			}
@@ -33,7 +33,7 @@
 					// so it should be marked as "shown" like it would have been
 					// done if handling the event with the file list already
 					// created.
-					shown: true
+					shown: true,
 				}
 			)
 
@@ -41,15 +41,15 @@
 			return this._fileList
 		},
 
-		removeFileList: function() {
+		removeFileList() {
 			if (this._fileList) {
 				this._fileList.$fileList.empty()
 			}
 		},
 
-		_createFileActions: function() {
+		_createFileActions() {
 			// inherit file actions from the files app
-			var fileActions = new OCA.Files.FileActions()
+			const fileActions = new OCA.Files.FileActions()
 			// note: not merging the legacy actions because legacy apps are not
 			// compatible with the sharing overview and need to be adapted first
 			fileActions.registerDefaultActions()
@@ -73,7 +73,7 @@
 			return fileActions
 		},
 
-		_onActionsUpdated: function(ev) {
+		_onActionsUpdated(ev) {
 			if (!this._fileList) {
 				return
 			}
@@ -91,18 +91,18 @@
 		/**
 		 * Destroy the app
 		 */
-		destroy: function() {
+		destroy() {
 			OCA.Files.fileActions.off('setDefault.app-systemtags', this._onActionsUpdated)
 			OCA.Files.fileActions.off('registerAction.app-systemtags', this._onActionsUpdated)
 			this.removeFileList()
 			this._fileList = null
 			delete this._globalActionsInitialized
-		}
+		},
 	}
 
 })()
 
-$(document).ready(function() {
+window.addEventListener('DOMContentLoaded', function() {
 	$('#app-content-systemtagsfilter').on('show', function(e) {
 		OCA.SystemTags.App.initFileList($(e.target))
 	})

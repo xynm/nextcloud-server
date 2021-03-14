@@ -3,13 +3,16 @@
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Clark Tomlinson <fallen013@gmail.com>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <robin@icewind.nl>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
- * @author Vincent Petry <pvince81@owncloud.com>
+ * @author Tobia De Koninck <tobia@ledfan.be>
+ * @author Vincent Petry <vincent@nextcloud.com>
  *
  * @license AGPL-3.0
  *
@@ -23,11 +26,15 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
-use OCA\Files_Trashbin\Tests;
+use OC\AppFramework\Bootstrap\BootContext;
+use OC\AppFramework\DependencyInjection\DIContainer;
+use OCA\Files_Sharing\AppInfo\Application;
+use OCA\Files_Trashbin\AppInfo\Application as TrashbinApplication;
+use OCP\Share\IShare;
 
 /**
  * Class Test_Encryption
@@ -35,9 +42,8 @@ use OCA\Files_Trashbin\Tests;
  * @group DB
  */
 class TrashbinTest extends \Test\TestCase {
-
-	const TEST_TRASHBIN_USER1 = "test-trashbin-user1";
-	const TEST_TRASHBIN_USER2 = "test-trashbin-user2";
+	public const TEST_TRASHBIN_USER1 = "test-trashbin-user1";
+	public const TEST_TRASHBIN_USER2 = "test-trashbin-user2";
 
 	private $trashRoot1;
 	private $trashRoot2;
@@ -54,7 +60,7 @@ class TrashbinTest extends \Test\TestCase {
 	 */
 	private $rootView;
 
-	public static function setUpBeforeClass() {
+	public static function setUpBeforeClass(): void {
 		parent::setUpBeforeClass();
 
 		$appManager = \OC::$server->getAppManager();
@@ -66,9 +72,10 @@ class TrashbinTest extends \Test\TestCase {
 
 		// clear share hooks
 		\OC_Hook::clear('OCP\\Share');
-		\OC::registerShareHooks();
-		$application = \OC::$server->query(\OCA\Files_Sharing\AppInfo\Application::class);
-		$application->registerMountProviders();
+		\OC::registerShareHooks(\OC::$server->getSystemConfig());
+
+		// init files sharing
+		new Application();
 
 		//disable encryption
 		\OC::$server->getAppManager()->disableApp('encryption');
@@ -80,8 +87,9 @@ class TrashbinTest extends \Test\TestCase {
 		$expiration = \OC::$server->query(\OCA\Files_Trashbin\Expiration::class);
 		$expiration->setRetentionObligation('auto, 2');
 
-		// register hooks
-		\OCA\Files_Trashbin\Trashbin::registerHooks();
+		// register trashbin hooks
+		$trashbinApp = new TrashbinApplication();
+		$trashbinApp->boot(new BootContext(new DIContainer('', [], \OC::$server)));
 
 		// create test user
 		self::loginHelper(self::TEST_TRASHBIN_USER2, true);
@@ -89,7 +97,7 @@ class TrashbinTest extends \Test\TestCase {
 	}
 
 
-	public static function tearDownAfterClass() {
+	public static function tearDownAfterClass(): void {
 		// cleanup test user
 		$user = \OC::$server->getUserManager()->get(self::TEST_TRASHBIN_USER1);
 		if ($user !== null) {
@@ -111,22 +119,32 @@ class TrashbinTest extends \Test\TestCase {
 		parent::tearDownAfterClass();
 	}
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		\OC::$server->getAppManager()->enableApp('files_trashbin');
 		$config = \OC::$server->getConfig();
 		$mockConfig = $this->createMock(\OCP\IConfig::class);
-		$mockConfig->expects($this->any())
+		$mockConfig
 			->method('getSystemValue')
-			->will($this->returnCallback(function ($key, $default) use ($config) {
+			->willReturnCallback(static function ($key, $default) use ($config) {
 				if ($key === 'filesystem_check_changes') {
 					return \OC\Files\Cache\Watcher::CHECK_ONCE;
 				} else {
 					return $config->getSystemValue($key, $default);
 				}
-			}));
-		$this->overwriteService('AllConfig', $mockConfig);
+			});
+		$mockConfig
+			->method('getUserValue')
+			->willReturnCallback(static function ($userId, $appName, $key, $default = '') use ($config) {
+				return $config->getUserValue($userId, $appName, $key, $default);
+			});
+		$mockConfig
+			->method('getAppValue')
+			->willReturnCallback(static function ($appName, $key, $default = '') use ($config) {
+				return $config->getAppValue($appName, $key, $default);
+			});
+		$this->overwriteService(\OC\AllConfig::class, $mockConfig);
 
 		$this->trashRoot1 = '/' . self::TEST_TRASHBIN_USER1 . '/files_trashbin';
 		$this->trashRoot2 = '/' . self::TEST_TRASHBIN_USER2 . '/files_trashbin';
@@ -134,8 +152,8 @@ class TrashbinTest extends \Test\TestCase {
 		self::loginHelper(self::TEST_TRASHBIN_USER1);
 	}
 
-	protected function tearDown() {
-		$this->restoreService('AllConfig');
+	protected function tearDown(): void {
+		$this->restoreService(\OC\AllConfig::class);
 		// disable trashbin to be able to properly clean up
 		\OC::$server->getAppManager()->disableApp('files_trashbin');
 
@@ -180,7 +198,7 @@ class TrashbinTest extends \Test\TestCase {
 		$manipulatedList = $this->manipulateDeleteTime($filesInTrash, $this->trashRoot1, $expiredDate);
 
 		$testClass = new TrashbinForTesting();
-		list($sizeOfDeletedFiles, $count) = $testClass->dummyDeleteExpiredFiles($manipulatedList, $expireAt);
+		[$sizeOfDeletedFiles, $count] = $testClass->dummyDeleteExpiredFiles($manipulatedList, $expireAt);
 
 		$this->assertSame(10, $sizeOfDeletedFiles);
 		$this->assertSame(2, $count);
@@ -207,7 +225,6 @@ class TrashbinTest extends \Test\TestCase {
 	 * correctly
 	 */
 	public function testExpireOldFilesShared() {
-
 		$currentTime = time();
 		$folder = "trashTest-" . $currentTime . '/';
 		$expiredDate = $currentTime - 3 * 24 * 60 * 60;
@@ -222,7 +239,7 @@ class TrashbinTest extends \Test\TestCase {
 		//share user1-4.txt with user2
 		$node = \OC::$server->getUserFolder(self::TEST_TRASHBIN_USER1)->get($folder);
 		$share = \OC::$server->getShareManager()->newShare();
-		$share->setShareType(\OCP\Share::SHARE_TYPE_USER)
+		$share->setShareType(IShare::TYPE_USER)
 			->setNode($node)
 			->setSharedBy(self::TEST_TRASHBIN_USER1)
 			->setSharedWith(self::TEST_TRASHBIN_USER2)
@@ -267,14 +284,14 @@ class TrashbinTest extends \Test\TestCase {
 		$filesInTrashUser2AfterDelete = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER2);
 
 		// user2-1.txt should have been expired
-		$this->verifyArray($filesInTrashUser2AfterDelete, array('user2-2.txt', 'user1-4.txt'));
+		$this->verifyArray($filesInTrashUser2AfterDelete, ['user2-2.txt', 'user1-4.txt']);
 
 		self::loginHelper(self::TEST_TRASHBIN_USER1);
 
 		// user1-1.txt and user1-3.txt should have been expired
 		$filesInTrashUser1AfterDelete = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1);
 
-		$this->verifyArray($filesInTrashUser1AfterDelete, array('user1-2.txt', 'user1-4.txt'));
+		$this->verifyArray($filesInTrashUser1AfterDelete, ['user1-2.txt', 'user1-4.txt']);
 	}
 
 	/**
@@ -640,7 +657,7 @@ class TrashbinTest extends \Test\TestCase {
 		$trashedFile = $filesInTrash[0];
 
 		// delete source folder
-		list($storage, $internalPath) = $this->rootView->resolvePath('/' . self::TEST_TRASHBIN_USER1 . '/files/folder');
+		[$storage, $internalPath] = $this->rootView->resolvePath('/' . self::TEST_TRASHBIN_USER1 . '/files/folder');
 		if ($storage instanceof \OC\Files\Storage\Local) {
 			$folderAbsPath = $storage->getSourcePath($internalPath);
 			// make folder read-only
@@ -670,7 +687,6 @@ class TrashbinTest extends \Test\TestCase {
 			try {
 				\OC::$server->getUserManager()->createUser($user, $user);
 			} catch (\Exception $e) { // catch username is already being used from previous aborted runs
-
 			}
 		}
 

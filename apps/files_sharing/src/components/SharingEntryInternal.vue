@@ -20,7 +20,7 @@
 
 <script>
 import { generateUrl } from '@nextcloud/router'
-import ActionLink from 'nextcloud-vue/dist/Components/ActionLink'
+import ActionLink from '@nextcloud/vue/dist/Components/ActionLink'
 import SharingEntrySimple from './SharingEntrySimple'
 
 export default {
@@ -28,21 +28,21 @@ export default {
 
 	components: {
 		ActionLink,
-		SharingEntrySimple
+		SharingEntrySimple,
 	},
 
 	props: {
 		fileInfo: {
 			type: Object,
 			default: () => {},
-			required: true
-		}
+			required: true,
+		},
 	},
 
 	data() {
 		return {
 			copied: false,
-			copySuccess: false
+			copySuccess: false,
 		}
 	},
 
@@ -73,7 +73,7 @@ export default {
 				return t('files_sharing', 'Only works for users with access to this folder')
 			}
 			return t('files_sharing', 'Only works for users with access to this file')
-		}
+		},
 	},
 
 	methods: {
@@ -94,8 +94,8 @@ export default {
 					this.copied = false
 				}, 4000)
 			}
-		}
-	}
+		},
+	},
 }
 </script>
 

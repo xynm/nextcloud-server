@@ -10,6 +10,7 @@
 				<Check :check="check"
 					:rule="rule"
 					@update="updateRule"
+					@validate="validate"
 					@remove="removeCheck(check)" />
 			</p>
 			<p>
@@ -18,7 +19,7 @@
 					type="button"
 					class="check--add"
 					value="Add a new filter"
-					@click="rule.checks.push({class: null, operator: null, value: null})">
+					@click="rule.checks.push({class: null, operator: null, value: ''})">
 			</p>
 		</div>
 		<div class="flow-icon icon-confirm" />
@@ -30,27 +31,29 @@
 					@input="updateOperation" />
 			</Operation>
 			<div class="buttons">
-				<button v-tooltip="ruleStatus.tooltip"
-					class="status-button icon"
+				<button class="status-button icon"
 					:class="ruleStatus.class"
 					@click="saveRule">
 					{{ ruleStatus.title }}
 				</button>
-				<button v-if="rule.id < -1" @click="cancelRule">
+				<button v-if="rule.id < -1 || dirty" @click="cancelRule">
 					{{ t('workflowengine', 'Cancel') }}
 				</button>
-				<button v-else @click="deleteRule">
+				<button v-else-if="!dirty" @click="deleteRule">
 					{{ t('workflowengine', 'Delete') }}
 				</button>
 			</div>
+			<p v-if="error" class="error-message">
+				{{ error }}
+			</p>
 		</div>
 	</div>
 </template>
 
 <script>
-import { Tooltip } from 'nextcloud-vue/dist/Directives/Tooltip'
-import { Actions } from 'nextcloud-vue/dist/Components/Actions'
-import { ActionButton } from 'nextcloud-vue/dist/Components/ActionButton'
+import Tooltip from '@nextcloud/vue/dist/Directives/Tooltip'
+import Actions from '@nextcloud/vue/dist/Components/Actions'
+import ActionButton from '@nextcloud/vue/dist/Components/ActionButton'
 import Event from './Event'
 import Check from './Check'
 import Operation from './Operation'
@@ -58,16 +61,16 @@ import Operation from './Operation'
 export default {
 	name: 'Rule',
 	components: {
-		Operation, Check, Event, Actions, ActionButton
+		Operation, Check, Event, Actions, ActionButton,
 	},
 	directives: {
-		Tooltip
+		Tooltip,
 	},
 	props: {
 		rule: {
 			type: Object,
-			required: true
-		}
+			required: true,
+		},
 	},
 	data() {
 		return {
@@ -75,7 +78,7 @@ export default {
 			checks: [],
 			error: null,
 			dirty: this.rule.id < 0,
-			checking: false
+			originalRule: null,
 		}
 	},
 	computed: {
@@ -83,51 +86,50 @@ export default {
 			return this.$store.getters.getOperationForRule(this.rule)
 		},
 		ruleStatus() {
-			if (this.error || !this.rule.valid || this.rule.checks.some((check) => check.invalid === true)) {
+			if (this.error || !this.rule.valid || this.rule.checks.length === 0 || this.rule.checks.some((check) => check.invalid === true)) {
 				return {
 					title: t('workflowengine', 'The configuration is invalid'),
 					class: 'icon-close-white invalid',
-					tooltip: { placement: 'bottom', show: true, content: this.error }
+					tooltip: { placement: 'bottom', show: true, content: this.error },
 				}
 			}
-			if (!this.dirty || this.checking) {
-				return { title: 'Active', class: 'icon icon-checkmark' }
+			if (!this.dirty) {
+				return { title: t('workflowengine', 'Active'), class: 'icon icon-checkmark' }
 			}
-			return { title: 'Save', class: 'icon-confirm-white primary' }
+			return { title: t('workflowengine', 'Save'), class: 'icon-confirm-white primary' }
 
 		},
 		lastCheckComplete() {
 			const lastCheck = this.rule.checks[this.rule.checks.length - 1]
 			return typeof lastCheck === 'undefined' || lastCheck.class !== null
-		}
+		},
+	},
+	mounted() {
+		this.originalRule = JSON.parse(JSON.stringify(this.rule))
 	},
 	methods: {
 		async updateOperation(operation) {
 			this.$set(this.rule, 'operation', operation)
 			await this.updateRule()
 		},
-		async updateRule() {
-			this.checking = true
+		validate(state) {
+			this.error = null
+			this.$store.dispatch('updateRule', this.rule)
+		},
+		updateRule() {
 			if (!this.dirty) {
 				this.dirty = true
 			}
-			try {
-				// TODO: add new verify endpoint
-				// let result = await axios.post(OC.generateUrl(`/apps/workflowengine/operations/test`), this.rule)
-				this.error = null
-				this.checking = false
-				this.$store.dispatch('updateRule', this.rule)
-			} catch (e) {
-				console.error('Failed to update operation', e)
-				this.error = e.response.ocs.meta.message
-				this.checking = false
-			}
+
+			this.error = null
+			this.$store.dispatch('updateRule', this.rule)
 		},
 		async saveRule() {
 			try {
 				await this.$store.dispatch('pushUpdateRule', this.rule)
 				this.dirty = false
 				this.error = null
+				this.originalRule = JSON.parse(JSON.stringify(this.rule))
 			} catch (e) {
 				console.error('Failed to save operation')
 				this.error = e.response.data.ocs.meta.message
@@ -142,7 +144,13 @@ export default {
 			}
 		},
 		cancelRule() {
-			this.$store.dispatch('removeRule', this.rule)
+			if (this.rule.id < 0) {
+				this.$store.dispatch('removeRule', this.rule)
+			} else {
+				this.$store.dispatch('updateRule', this.originalRule)
+				this.originalRule = JSON.parse(JSON.stringify(this.rule))
+				this.dirty = false
+			}
 		},
 		async removeCheck(check) {
 			const index = this.rule.checks.findIndex(item => item === check)
@@ -150,8 +158,8 @@ export default {
 				this.$delete(this.rule.checks, index)
 			}
 			this.$store.dispatch('updateRule', this.rule)
-		}
-	}
+		},
+	},
 }
 </script>
 
@@ -163,10 +171,17 @@ export default {
 
 	.buttons {
 		display: block;
+		overflow: hidden;
+
 		button {
 			float: right;
 			height: 34px;
 		}
+	}
+
+	.error-message {
+		float: right;
+		margin-right: 10px;
 	}
 
 	.status-button {
@@ -185,6 +200,9 @@ export default {
 		background-color: var(--color-warning);
 		color: #fff;
 		border: none;
+	}
+	.status-button.icon-checkmark {
+		border: 1px solid var(--color-success);
 	}
 
 	.flow-icon {
@@ -214,20 +232,21 @@ export default {
 	.trigger p, .action p {
 		min-height: 34px;
 		display: flex;
-		align-items: center;
 
 		& > span {
 			min-width: 50px;
 			text-align: right;
 			color: var(--color-text-maxcontrast);
 			padding-right: 10px;
-			padding-top: 7px;
-			margin-bottom: auto;
+			padding-top: 6px;
 		}
 		.multiselect {
 			flex-grow: 1;
 			max-width: 300px;
 		}
+	}
+	.trigger p:first-child span {
+			padding-top: 3px;
 	}
 
 	.check--add {

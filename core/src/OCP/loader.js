@@ -20,8 +20,8 @@
  *
  */
 
-let loadedScripts = {}
-let loadedStylesheets = {}
+const loadedScripts = {}
+const loadedStylesheets = {}
 /**
  * @namespace OCP
  * @class Loader
@@ -35,15 +35,15 @@ export default {
 	 * @param {string} file the script file name
 	 * @returns {Promise}
 	 */
-	loadScript: function(app, file) {
+	loadScript(app, file) {
 		const key = app + file
-		if (loadedScripts.hasOwnProperty(key)) {
+		if (Object.prototype.hasOwnProperty.call(loadedScripts, key)) {
 			return Promise.resolve()
 		}
 		loadedScripts[key] = true
 		return new Promise(function(resolve, reject) {
-			var scriptPath = OC.filePath(app, 'js', file)
-			var script = document.createElement('script')
+			const scriptPath = OC.filePath(app, 'js', file)
+			const script = document.createElement('script')
 			script.src = scriptPath
 			script.setAttribute('nonce', btoa(OC.requestToken))
 			script.onload = () => resolve()
@@ -59,15 +59,15 @@ export default {
 	 * @param {string} file the script file name
 	 * @returns {Promise}
 	 */
-	loadStylesheet: function(app, file) {
+	loadStylesheet(app, file) {
 		const key = app + file
-		if (loadedStylesheets.hasOwnProperty(key)) {
+		if (Object.prototype.hasOwnProperty.call(loadedStylesheets, key)) {
 			return Promise.resolve()
 		}
 		loadedStylesheets[key] = true
 		return new Promise(function(resolve, reject) {
-			var stylePath = OC.filePath(app, 'css', file)
-			var link = document.createElement('link')
+			const stylePath = OC.filePath(app, 'css', file)
+			const link = document.createElement('link')
 			link.href = stylePath
 			link.type = 'text/css'
 			link.rel = 'stylesheet'
@@ -75,5 +75,5 @@ export default {
 			link.onerror = () => reject(new Error(`Failed to load stylesheet from ${stylePath}`))
 			document.head.appendChild(link)
 		})
-	}
+	},
 }

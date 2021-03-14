@@ -1,10 +1,10 @@
 all: clean dev-setup build-js-production
 
 # Dev env management
-dev-setup: clean clean-dev npm-init
+dev-setup: clean npm-init
 
 npm-init:
-	npm install
+	npm ci
 
 npm-update:
 	npm update
@@ -39,11 +39,9 @@ clean:
 	rm -rf apps/systemtags/js/systemtags.*
 	rm -rf apps/twofactor_backupcodes/js
 	rm -rf apps/updatenotification/js/updatenotification.*
+	rm -rf apps/user_status/js/
 	rm -rf apps/workflowengine/js/
 	rm -rf core/js/dist
-
-clean-dev:
-	rm -rf node_modules
 
 clean-git: clean
 	git checkout -- apps/accessibility/js/
@@ -57,5 +55,6 @@ clean-git: clean
 	git checkout -- apps/systemtags/js/systemtags.*
 	git checkout -- apps/twofactor_backupcodes/js
 	git checkout -- apps/updatenotification/js/updatenotification.*
+	git checkout -- apps/user_status/js/
 	git checkout -- apps/workflowengine/js/
 	git checkout -- core/js/dist

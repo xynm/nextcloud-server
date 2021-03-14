@@ -1,5 +1,4 @@
 [
-  "dist/sidebar.js",
   "app.js",
   "breadcrumb.js",
   "detailfileinfoview.js",
@@ -25,7 +24,6 @@
   "operationprogressbar.js",
   "recentfilelist.js",
   "recentplugin.js",
-  "search.js",
   "semaphore.js",
   "sidebarpreviewmanager.js",
   "sidebarpreviewtext.js",

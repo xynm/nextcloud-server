@@ -1,7 +1,6 @@
 OC.L10N.register(
     "systemtags",
     {
-    "Tags" : "Mærker",
     "Update" : "Opdater",
     "Create" : "Opret",
     "Select tag…" : "Vælg tag...",
@@ -36,6 +35,7 @@ OC.L10N.register(
     "%s (restricted)" : "%s (begrænset)",
     "%s (invisible)" : "%s (usynlig)",
     "<strong>System tags</strong> for a file have been modified" : "En fils <strong>systemmærkning</strong> er blevet ændret",
+    "Tags" : "Mærker",
     "Collaborative tags" : "Kollaborativ tags",
     "Tagged files" : "Mærkede filer",
     "Select tags to filter by" : "Vælg de mærker, der skal filtreres efter",
@@ -43,6 +43,7 @@ OC.L10N.register(
     "Please select tags to filter by" : "Vælg de mærker, der skal filtreres efter",
     "No files found for the selected tags" : "Der blev ikke fundet filer, som matcher de valgte mærker",
     "Select tag …" : "Vælg tag...",
+    "Create a new tag" : "Opret et nyt mærkat",
     "Name" : "Navn",
     "Public" : "Offentlig",
     "Restricted" : "Begrænset",

@@ -20,9 +20,9 @@
   -->
 
 <template>
-	<div>
+	<div v-if="!hideLoginForm || directLogin">
 		<transition name="fade" mode="out-in">
-			<div v-if="!resetPassword && resetPasswordTarget === ''"
+			<div v-if="!passwordlessLogin && !resetPassword && resetPasswordTarget === ''"
 				key="login">
 				<LoginForm
 					:username.sync="user"
@@ -45,6 +45,25 @@
 					@click.prevent="resetPassword = true">
 					{{ t('core', 'Forgot password?') }}
 				</a>
+				<br>
+				<a v-if="hasPasswordless" @click.prevent="passwordlessLogin = true">
+					{{ t('core', 'Log in with a device') }}
+				</a>
+			</div>
+			<div v-else-if="!loading && passwordlessLogin"
+				key="reset"
+				class="login-additional">
+				<PasswordLessLoginForm
+					:username.sync="user"
+					:redirect-url="redirectUrl"
+					:inverted-colors="invertedColors"
+					:auto-complete-allowed="autoCompleteAllowed"
+					:is-https="isHttps"
+					:has-public-key-credential="hasPublicKeyCredential"
+					@submit="loading = true" />
+				<a @click.prevent="passwordlessLogin = false">
+					{{ t('core', 'Back') }}
+				</a>
 			</div>
 			<div v-else-if="!loading && canResetPassword"
 				key="reset"
@@ -65,10 +84,20 @@
 			</div>
 		</transition>
 	</div>
+	<div v-else>
+		<transition name="fade" mode="out-in">
+			<div class="warning">
+				{{ t('core', 'Login form is disabled.') }}<br>
+				<small>{{ t('core', 'Please contact your administrator.') }}
+				</small>
+			</div>
+		</transition>
+	</div>
 </template>
 
 <script>
 import LoginForm from '../components/login/LoginForm.vue'
+import PasswordLessLoginForm from '../components/login/PasswordLessLoginForm.vue'
 import ResetPassword from '../components/login/ResetPassword.vue'
 import UpdatePassword from '../components/login/UpdatePassword.vue'
 
@@ -76,47 +105,64 @@ export default {
 	name: 'Login',
 	components: {
 		LoginForm,
+		PasswordLessLoginForm,
 		ResetPassword,
-		UpdatePassword
+		UpdatePassword,
 	},
 	props: {
 		username: {
 			type: String,
-			default: ''
+			default: '',
 		},
 		redirectUrl: {
-			type: String
+			type: String,
 		},
 		errors: {
 			type: Array,
-			default: () => []
+			default: () => [],
 		},
 		messages: {
 			type: Array,
-			default: () => []
+			default: () => [],
 		},
 		throttleDelay: {
-			type: Number
+			type: Number,
 		},
 		canResetPassword: {
 			type: Boolean,
-			default: false
+			default: false,
 		},
 		resetPasswordLink: {
-			type: String
+			type: String,
 		},
 		resetPasswordTarget: {
-			type: String
+			type: String,
 		},
 		invertedColors: {
 			type: Boolean,
-			default: false
+			default: false,
 		},
 		autoCompleteAllowed: {
 			type: Boolean,
-			default: true
+			default: true,
 		},
 		directLogin: {
+			type: Boolean,
+			default: false,
+		},
+		hasPasswordless: {
+			type: Boolean,
+			default: false,
+		},
+		isHttps: {
+			type: Boolean,
+			default: false,
+		},
+		hasPublicKeyCredential: {
+			type: Boolean,
+			default: false,
+		},
+		hideLoginForm: {
 			type: Boolean,
 			default: false
 		}
@@ -125,14 +171,16 @@ export default {
 		return {
 			loading: false,
 			user: this.username,
-			resetPassword: false
+			passwordlessLogin: false,
+			resetPassword: false,
 		}
 	},
 	methods: {
 		passwordResetFinished() {
 			this.resetPasswordTarget = ''
-		}
-	}
+			this.directLogin = true
+		},
+	},
 }
 </script>
 

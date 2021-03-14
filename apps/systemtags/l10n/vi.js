@@ -1,7 +1,6 @@
 OC.L10N.register(
     "systemtags",
     {
-    "Tags" : "Nhãn",
     "Update" : "Cập nhật",
     "Create" : "Tạo",
     "Select tag…" : "Chọn nhãn...",
@@ -36,6 +35,7 @@ OC.L10N.register(
     "%s (restricted)" : "%s (bị hạn chế)",
     "%s (invisible)" : "%s (vô hình)",
     "<strong>System tags</strong> for a file have been modified" : "<strong>Nhãn</strong> cho một tập tin đã được sửa đổi",
+    "Tags" : "Nhãn",
     "Collaborative tags" : "Thẻ cộng tác",
     "Tagged files" : "Các tệp được dán nhãn",
     "Select tags to filter by" : "Chọn nhãn để lọc theo",
@@ -43,6 +43,7 @@ OC.L10N.register(
     "Please select tags to filter by" : "Vui lòng chọn các nhãn để lọc theo",
     "No files found for the selected tags" : "Không tìm thấy tệp cho các nhãn đã chọn",
     "Select tag …" : "Lựa chọn thẻ",
+    "Create a new tag" : "Tạo một thẻ mới",
     "Name" : "Tên",
     "Public" : "Công khai",
     "Restricted" : "Bị giới hạn",

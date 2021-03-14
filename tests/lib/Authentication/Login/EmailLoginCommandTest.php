@@ -35,7 +35,7 @@ class EmailLoginCommandTest extends ALoginCommandTest {
 	/** @var IUserManager|MockObject */
 	private $userManager;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->userManager = $this->createMock(IUserManager::class);
@@ -161,5 +161,4 @@ class EmailLoginCommandTest extends ALoginCommandTest {
 		$this->assertEquals($emailUser, $data->getUser());
 		$this->assertEquals('user2', $data->getUsername());
 	}
-
 }

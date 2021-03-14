@@ -2,7 +2,9 @@
 /**
  * @copyright Copyright (c) 2017 Georg Ehrke <oc.list@georgehrke.com>
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Georg Ehrke <oc.list@georgehrke.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -17,7 +19,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,22 +85,22 @@ class CalendarSearchReport implements XmlDeserializable {
 	 * @param Reader $reader
 	 * @return mixed
 	 */
-	static function xmlDeserialize(Reader $reader) {
+	public static function xmlDeserialize(Reader $reader) {
 		$elems = $reader->parseInnerTree([
-			'{http://nextcloud.com/ns}comp-filter'  => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\CompFilter',
-			'{http://nextcloud.com/ns}prop-filter'  => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\PropFilter',
+			'{http://nextcloud.com/ns}comp-filter' => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\CompFilter',
+			'{http://nextcloud.com/ns}prop-filter' => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\PropFilter',
 			'{http://nextcloud.com/ns}param-filter' => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\ParamFilter',
-			'{http://nextcloud.com/ns}search-term'  => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\SearchTermFilter',
-			'{http://nextcloud.com/ns}limit'        => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\LimitFilter',
-			'{http://nextcloud.com/ns}offset'       => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\OffsetFilter',
-			'{DAV:}prop'                            => 'Sabre\\Xml\\Element\\KeyValue',
+			'{http://nextcloud.com/ns}search-term' => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\SearchTermFilter',
+			'{http://nextcloud.com/ns}limit' => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\LimitFilter',
+			'{http://nextcloud.com/ns}offset' => 'OCA\\DAV\\CalDAV\\Search\\Xml\\Filter\\OffsetFilter',
+			'{DAV:}prop' => 'Sabre\\Xml\\Element\\KeyValue',
 		]);
 
 		$newProps = [
-			'filters'    => [],
+			'filters' => [],
 			'properties' => [],
-			'limit'      => null,
-			'offset'     => null
+			'limit' => null,
+			'offset' => null
 		];
 
 		if (!is_array($elems)) {

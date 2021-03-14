@@ -44,6 +44,7 @@ __webpack_public_path__ = OC.linkTo('settings', 'js/')
 
 // bind to window
 Vue.prototype.t = t
+Vue.prototype.n = n
 Vue.prototype.OC = OC
 Vue.prototype.OCA = OCA
 // eslint-disable-next-line camelcase
@@ -52,7 +53,7 @@ Vue.prototype.oc_userconfig = oc_userconfig
 const app = new Vue({
 	router,
 	store,
-	render: h => h(App)
+	render: h => h(App),
 }).$mount('#content')
 
 export { app, router, store }

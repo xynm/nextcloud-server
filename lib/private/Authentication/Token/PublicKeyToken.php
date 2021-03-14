@@ -1,9 +1,12 @@
 <?php
-/** @noinspection ALL */
+
 declare(strict_types=1);
+
 /**
- * @copyright Copyright (c) 2018 Roeland Jago Douma <roeland@famdouma.nl>
  *
+ *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
@@ -19,7 +22,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,8 +48,7 @@ use OCP\AppFramework\Db\Entity;
  * @method bool getPasswordInvalid()
  */
 class PublicKeyToken extends Entity implements INamedToken, IWipeableToken {
-
-	const VERSION = 2;
+	public const VERSION = 2;
 
 	/** @var string user UID */
 	protected $uid;
@@ -178,7 +180,7 @@ class PublicKeyToken extends Entity implements INamedToken, IWipeableToken {
 		$scope = json_decode($this->getScope(), true);
 		if (!$scope) {
 			return [
-				'filesystem'=> true
+				'filesystem' => true
 			];
 		}
 		return $scope;

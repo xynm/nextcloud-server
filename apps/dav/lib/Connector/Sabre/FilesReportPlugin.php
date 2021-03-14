@@ -2,9 +2,13 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
- * @author Vincent Petry <pvince81@owncloud.com>
+ * @author Vincent Petry <vincent@nextcloud.com>
+ * @author Vinicius Cubas Brand <vinicius@eita.org.br>
  *
  * @license AGPL-3.0
  *
@@ -18,7 +22,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -44,10 +48,10 @@ use Sabre\DAV\Xml\Response\MultiStatus;
 class FilesReportPlugin extends ServerPlugin {
 
 	// namespace
-	const NS_OWNCLOUD = 'http://owncloud.org/ns';
-	const REPORT_NAME            = '{http://owncloud.org/ns}filter-files';
-	const SYSTEMTAG_PROPERTYNAME = '{http://owncloud.org/ns}systemtag';
-	const CIRCLE_PROPERTYNAME = '{http://owncloud.org/ns}circle';
+	public const NS_OWNCLOUD = 'http://owncloud.org/ns';
+	public const REPORT_NAME = '{http://owncloud.org/ns}filter-files';
+	public const SYSTEMTAG_PROPERTYNAME = '{http://owncloud.org/ns}systemtag';
+	public const CIRCLE_PROPERTYNAME = '{http://owncloud.org/ns}circle';
 
 	/**
 	 * Reference to main server object
@@ -147,11 +151,10 @@ class FilesReportPlugin extends ServerPlugin {
 	 * @return void
 	 */
 	public function initialize(\Sabre\DAV\Server $server) {
-
 		$server->xml->namespaceMap[self::NS_OWNCLOUD] = 'oc';
 
 		$this->server = $server;
-		$this->server->on('report', array($this, 'onReport'));
+		$this->server->on('report', [$this, 'onReport']);
 	}
 
 	/**
@@ -192,7 +195,7 @@ class FilesReportPlugin extends ServerPlugin {
 			$name = $reportProps['name'];
 			if ($name === $ns . 'filter-rules') {
 				$filterRules = $reportProps['value'];
-			} else if ($name === '{DAV:}prop') {
+			} elseif ($name === '{DAV:}prop') {
 				// propfind properties
 				foreach ($reportProps['value'] as $propVal) {
 					$requestedProps[] = $propVal['name'];
@@ -278,7 +281,6 @@ class FilesReportPlugin extends ServerPlugin {
 			if ($filterRule['name'] === $ns . 'favorite') {
 				$favoriteFilter = true;
 			}
-
 		}
 
 		if ($favoriteFilter !== null) {
@@ -418,7 +420,7 @@ class FilesReportPlugin extends ServerPlugin {
 				$entry = current($entry);
 				if ($entry instanceof \OCP\Files\File) {
 					$results[] = new File($this->fileView, $entry);
-				} else if ($entry instanceof \OCP\Files\Folder) {
+				} elseif ($entry instanceof \OCP\Files\Folder) {
 					$results[] = new Directory($this->fileView, $entry);
 				}
 			}

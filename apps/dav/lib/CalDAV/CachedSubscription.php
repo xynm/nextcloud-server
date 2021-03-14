@@ -1,9 +1,13 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright 2018 Georg Ehrke <oc.list@georgehrke.com>
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Georg Ehrke <oc.list@georgehrke.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -18,7 +22,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -108,9 +112,7 @@ class CachedSubscription extends \Sabre\CalDAV\Calendar {
 		return parent::getOwner();
 	}
 
-	/**
-	 *
-	 */
+	
 	public function delete() {
 		$this->caldavBackend->deleteSubscription($this->calendarInfo['id']);
 	}
@@ -134,8 +136,7 @@ class CachedSubscription extends \Sabre\CalDAV\Calendar {
 		}
 
 		$obj['acl'] = $this->getChildACL();
-		return new CachedSubscriptionObject	($this->caldavBackend, $this->calendarInfo, $obj);
-
+		return new CachedSubscriptionObject($this->caldavBackend, $this->calendarInfo, $obj);
 	}
 
 	/**
@@ -145,7 +146,7 @@ class CachedSubscription extends \Sabre\CalDAV\Calendar {
 		$objs = $this->caldavBackend->getCalendarObjects($this->calendarInfo['id'], CalDavBackend::CALENDAR_TYPE_SUBSCRIPTION);
 
 		$children = [];
-		foreach($objs as $obj) {
+		foreach ($objs as $obj) {
 			$children[] = new CachedSubscriptionObject($this->caldavBackend, $this->calendarInfo, $obj);
 		}
 
@@ -160,7 +161,7 @@ class CachedSubscription extends \Sabre\CalDAV\Calendar {
 		$objs = $this->caldavBackend->getMultipleCalendarObjects($this->calendarInfo['id'], $paths, CalDavBackend::CALENDAR_TYPE_SUBSCRIPTION);
 
 		$children = [];
-		foreach($objs as $obj) {
+		foreach ($objs as $obj) {
 			$children[] = new CachedSubscriptionObject($this->caldavBackend, $this->calendarInfo, $obj);
 		}
 

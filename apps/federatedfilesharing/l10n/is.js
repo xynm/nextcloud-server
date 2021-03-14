@@ -24,7 +24,9 @@ OC.L10N.register(
     "Sharing %1$s failed, could not find %2$s, maybe the server is currently unreachable or uses a self-signed certificate." : "Deiling %1$s mistókst, gat ekki fundið %2$s, hugsanlega er þjónninn ekki tiltækur í augnablikinu eða að hann notar sjálfundirritað skilríki.",
     "Could not find share" : "Gat ekki fundið sameign",
     "Federated sharing" : "Deiling milli þjóna (skýjasambandssameign)",
+    "You received \"%3$s\" as a remote share from %4$s (%1$s) (on behalf of %5$s (%2$s))" : "Þú tókst við \"%3$s\" sem fjartengdri sameign frá %4$s (%1$s) (fyrir hönd %5$s)",
     "You received {share} as a remote share from {user} (on behalf of {behalf})" : "Þú tókst við {share} sem fjartengdri sameign frá {user} (fyrir hönd {behalf})",
+    "You received \"%3$s\" as a remote share from %4$s (%1$s)" : "Þú tókst við \"%3$s\" sem fjartengdri sameign frá %4$s (%1$s)",
     "You received {share} as a remote share from {user}" : "Þú tókst við {share} sem fjartengdri sameign frá {user}",
     "Accept" : "Samþykkja",
     "Decline" : "Hafna",
@@ -36,7 +38,6 @@ OC.L10N.register(
     "Federated Cloud Sharing" : "Deiling með skýjasambandi",
     "Open documentation" : "Opna hjálparskjöl",
     "Adjust how people can share between servers." : "Stilltu hvernig fólk getur deilt á milli þjóna.",
-    "Allow users on this server to send shares to other servers" : "Leyfa notendum á þessum þjóni að senda sameignir til annarra þjóna",
     "Allow users on this server to receive shares from other servers" : "Leyfa notendum á þessum þjóni að taka á móti sameignum frá öðrum þjónum",
     "Allow users on this server to send shares to groups on other servers" : "Leyfa notendum á þessum þjóni að senda sameignir til hópa á öðrum þjónum",
     "Allow users on this server to receive group shares from other servers" : "Leyfa notendum á þessum þjóni að taka á móti hópsameignum frá öðrum þjónum",
@@ -49,7 +50,6 @@ OC.L10N.register(
     "Add to your website" : "Bæta við vefsvæðið þitt",
     "Share with me via Nextcloud" : "Deila með mér í gegnum Nextcloud",
     "HTML Code:" : "HTML-kóði:",
-    "You received \"%3$s\" as a remote share from %1$s (on behalf of %2$s)" : "Þú tókst við \"%3$s\" sem fjartengdri sameign frá %1$s (fyrir hönd %2$s)",
-    "You received \"%3$s\" as a remote share from %1$s" : "Þú tókst við \"%3$s\" sem fjartengdri sameign frá %1$s"
+    "Allow users on this server to send shares to other servers" : "Leyfa notendum á þessum þjóni að senda sameignir til annarra þjóna"
 },
 "nplurals=2; plural=(n % 10 != 1 || n % 100 == 11);");

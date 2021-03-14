@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
@@ -19,17 +21,18 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OC\Notification;
 
-
 use OCP\AppFramework\QueryException;
 use OCP\ILogger;
 use OCP\Notification\AlreadyProcessedException;
 use OCP\Notification\IApp;
+use OCP\Notification\IDeferrableApp;
+use OCP\Notification\IDismissableNotifier;
 use OCP\Notification\IManager;
 use OCP\Notification\INotification;
 use OCP\Notification\INotifier;
@@ -53,6 +56,8 @@ class Manager implements IManager {
 
 	/** @var bool */
 	protected $preparingPushNotification;
+	/** @var bool */
+	protected $deferPushing;
 
 	public function __construct(IValidator $validator,
 								ILogger $logger) {
@@ -63,6 +68,7 @@ class Manager implements IManager {
 		$this->appClasses = [];
 		$this->notifierClasses = [];
 		$this->preparingPushNotification = false;
+		$this->deferPushing = false;
 	}
 	/**
 	 * @param string $appClass The service must implement IApp, otherwise a
@@ -198,6 +204,46 @@ class Manager implements IManager {
 	}
 
 	/**
+	 * The calling app should only "flush" when it got returned true on the defer call
+	 * @return bool
+	 * @since 20.0.0
+	 */
+	public function defer(): bool {
+		$alreadyDeferring = $this->deferPushing;
+		$this->deferPushing = true;
+
+		$apps = $this->getApps();
+
+		foreach ($apps as $app) {
+			if ($app instanceof IDeferrableApp) {
+				$app->defer();
+			}
+		}
+
+		return !$alreadyDeferring;
+	}
+
+	/**
+	 * @since 20.0.0
+	 */
+	public function flush(): void {
+		$apps = $this->getApps();
+
+		foreach ($apps as $app) {
+			if (!$app instanceof IDeferrableApp) {
+				continue;
+			}
+
+			try {
+				$app->flush();
+			} catch (\InvalidArgumentException $e) {
+			}
+		}
+
+		$this->deferPushing = false;
+	}
+
+	/**
 	 * @param INotification $notification
 	 * @throws \InvalidArgumentException When the notification is not valid
 	 * @since 8.2.0
@@ -294,5 +340,19 @@ class Manager implements IManager {
 		}
 
 		return $count;
+	}
+
+	public function dismissNotification(INotification $notification): void {
+		$notifiers = $this->getNotifiers();
+
+		foreach ($notifiers as $notifier) {
+			if ($notifier instanceof IDismissableNotifier) {
+				try {
+					$notifier->dismissNotification($notification);
+				} catch (\InvalidArgumentException $e) {
+					continue;
+				}
+			}
+		}
 	}
 }

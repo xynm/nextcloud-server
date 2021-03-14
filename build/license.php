@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Thomas Müller
  *
@@ -15,11 +16,10 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
-class Licenses
-{
+class Licenses {
 	protected $paths = [];
 	protected $mailMap = [];
 	protected $checkFiles = [];
@@ -45,7 +45,7 @@ class Licenses
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 EOD;
@@ -67,7 +67,7 @@ EOD;
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 EOD;
@@ -78,10 +78,9 @@ EOD;
 	 * @param string|string[] $folder
 	 * @param string|bool $gitRoot
 	 */
-	function exec($folder, $gitRoot = false) {
-
+	public function exec($folder, $gitRoot = false) {
 		if (is_array($folder)) {
-			foreach($folder as $f) {
+			foreach ($folder as $f) {
 				$this->exec($f, $gitRoot);
 			}
 			return;
@@ -97,14 +96,14 @@ EOD;
 			return;
 		}
 
-		$excludes = array_map(function($item) use ($folder) {
+		$excludes = array_map(function ($item) use ($folder) {
 			return $folder . '/' . $item;
 		}, ['vendor', '3rdparty', '.git', 'l10n', 'templates', 'composer']);
 
 		$iterator = new RecursiveDirectoryIterator($folder, RecursiveDirectoryIterator::SKIP_DOTS);
-		$iterator = new RecursiveCallbackFilterIterator($iterator, function($item) use ($folder, $excludes){
+		$iterator = new RecursiveCallbackFilterIterator($iterator, function ($item) use ($folder, $excludes) {
 			/** @var SplFileInfo $item */
-			foreach($excludes as $exclude) {
+			foreach ($excludes as $exclude) {
 				if (substr($item->getPath(), 0, strlen($exclude)) === $exclude) {
 					return false;
 				}
@@ -122,7 +121,7 @@ EOD;
 		$this->printFilesToCheck();
 	}
 
-	function writeAuthorsFile() {
+	public function writeAuthorsFile() {
 		ksort($this->authors);
 		$template = "Nextcloud is written by:
 @AUTHORS@
@@ -133,14 +132,14 @@ With help from many libraries and frameworks including:
 	jQuery
 	…
 ";
-		$authors = implode(PHP_EOL, array_map(function($author){
+		$authors = implode(PHP_EOL, array_map(function ($author) {
 			return " - ".$author;
 		}, $this->authors));
 		$template = str_replace('@AUTHORS@', $authors, $template);
 		file_put_contents(__DIR__.'/../AUTHORS', $template);
 	}
 
-	function handleFile($path, $gitRoot) {
+	public function handleFile($path, $gitRoot) {
 		$source = file_get_contents($path);
 		if ($this->isMITLicensed($source)) {
 			echo "MIT licensed file: $path" . PHP_EOL;
@@ -161,8 +160,12 @@ With help from many libraries and frameworks including:
 			$license = str_replace('@COPYRIGHT@', $copyrightNotices, $license);
 		}
 
-		$source = $this->eatOldLicense($source);
-		$source = "<?php" . PHP_EOL . $license . PHP_EOL . $source;
+		[$source, $isStrict] = $this->eatOldLicense($source);
+		if ($isStrict) {
+			$source = "<?php" . PHP_EOL . PHP_EOL . 'declare(strict_types=1);' . PHP_EOL . PHP_EOL . $license . PHP_EOL . $source;
+		} else {
+			$source = "<?php" . PHP_EOL . $license . PHP_EOL . $source;
+		}
 		file_put_contents($path,$source);
 		echo "License updated: $path" . PHP_EOL;
 	}
@@ -173,7 +176,7 @@ With help from many libraries and frameworks including:
 	 */
 	private function isMITLicensed($source) {
 		$lines = explode(PHP_EOL, $source);
-		while(!empty($lines)) {
+		while (!empty($lines)) {
 			$line = $lines[0];
 			array_shift($lines);
 			if (strpos($line, 'The MIT License') !== false) {
@@ -184,18 +187,18 @@ With help from many libraries and frameworks including:
 		return false;
 	}
 
-        private function isOwnCloudLicensed($source) {
-			$lines = explode(PHP_EOL, $source);
-			while(!empty($lines)) {
-				$line = $lines[0];
-				array_shift($lines);
-				if (strpos($line, 'ownCloud, Inc') !== false || strpos($line, 'ownCloud GmbH') !== false) {
-					return true;
-				}
+	private function isOwnCloudLicensed($source) {
+		$lines = explode(PHP_EOL, $source);
+		while (!empty($lines)) {
+			$line = $lines[0];
+			array_shift($lines);
+			if (strpos($line, 'ownCloud, Inc') !== false || strpos($line, 'ownCloud GmbH') !== false) {
+				return true;
 			}
+		}
 
-			return false;
-        }
+		return false;
+	}
 
 	/**
 	 * @param string $source
@@ -203,9 +206,25 @@ With help from many libraries and frameworks including:
 	 */
 	private function eatOldLicense($source) {
 		$lines = explode(PHP_EOL, $source);
-		while(!empty($lines)) {
+		$isStrict = false;
+		while (!empty($lines)) {
 			$line = $lines[0];
-			if (strpos($line, '<?php') !== false) {
+			if (trim($line) === '<?php') {
+				array_shift($lines);
+				continue;
+			}
+			if (strpos($line, '<?php declare(strict_types') !== false) {
+				$isStrict = true;
+				array_shift($lines);
+				continue;
+			}
+			if (strpos($line, 'declare (strict_types') !== false) {
+				$isStrict = true;
+				array_shift($lines);
+				continue;
+			}
+			if (strpos($line, 'declare(strict_types') !== false) {
+				$isStrict = true;
 				array_shift($lines);
 				continue;
 			}
@@ -213,7 +232,7 @@ With help from many libraries and frameworks including:
 				array_shift($lines);
 				continue;
 			}
-			if (strpos($line, '*/') !== false ) {
+			if (strpos($line, '*/') !== false) {
 				array_shift($lines);
 				break;
 			}
@@ -228,7 +247,7 @@ With help from many libraries and frameworks including:
 			break;
 		}
 
-		return implode(PHP_EOL, $lines);
+		return [implode(PHP_EOL, $lines), $isStrict];
 	}
 
 	private function getCopyrightNotices($path, $file) {
@@ -268,7 +287,7 @@ With help from many libraries and frameworks including:
 			chdir($buildDir);
 		}
 		$timestampChanges = explode(PHP_EOL, $out);
-		$timestampChanges = array_slice($timestampChanges, 0, count($timestampChanges)-1);
+		$timestampChanges = array_slice($timestampChanges, 0, count($timestampChanges) - 1);
 		foreach ($timestampChanges as $timestamp) {
 			if ((int)$timestamp < $deadlineTimestamp) {
 				return;
@@ -277,7 +296,6 @@ With help from many libraries and frameworks including:
 
 		//all changes after the deadline
 		$this->checkFiles[] = $path;
-
 	}
 
 	private function printFilesToCheck() {
@@ -307,7 +325,7 @@ With help from many libraries and frameworks including:
 		}
 		$authors = explode(PHP_EOL, $out);
 
-		$authors = array_filter($authors, function($author) {
+		$authors = array_filter($authors, function ($author) {
 			return !in_array($author, [
 				'',
 				'Not Committed Yet <not.committed.yet>',
@@ -321,7 +339,7 @@ With help from many libraries and frameworks including:
 			$authors = array_unique($authors);
 		}
 
-		$authors = array_map(function($author){
+		$authors = array_map(function ($author) {
 			$author = $this->fixInvalidEmail($author);
 			$this->authors[$author] = $author;
 			return " * @author $author";
@@ -338,7 +356,7 @@ With help from many libraries and frameworks including:
 				if (strpos($entry, '> ') === false) {
 					$this->mailMap[$entry] = $entry;
 				} else {
-					list($use, $actual) = explode('> ', $entry);
+					[$use, $actual] = explode('> ', $entry);
 					$this->mailMap[$actual] = $use . '>';
 				}
 			}
@@ -364,7 +382,9 @@ if (isset($argv[1])) {
 	$licenses->exec($argv[1], isset($argv[2]) ? $argv[1] : false);
 } else {
 	$licenses->exec([
+		'../apps/accessibility',
 		'../apps/admin_audit',
+		'../apps/cloud_federation_api',
 		'../apps/comments',
 		'../apps/dav',
 		'../apps/encryption',
@@ -375,17 +395,21 @@ if (isset($argv[1])) {
 		'../apps/files_sharing',
 		'../apps/files_trashbin',
 		'../apps/files_versions',
+		'../apps/lookup_server_connector',
+		'../apps/oauth2',
 		'../apps/provisioning_api',
+		'../apps/settings',
+		'../apps/sharebymail',
 		'../apps/systemtags',
 		'../apps/testing',
 		'../apps/theming',
+		'../apps/twofactor_backupcodes',
 		'../apps/updatenotification',
 		'../apps/user_ldap',
 		'../build/integration/features/bootstrap',
 		'../core',
 		'../lib',
 		'../ocs',
-		'../settings',
 		'../console.php',
 		'../cron.php',
 		'../index.php',

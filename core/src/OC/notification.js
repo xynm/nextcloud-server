@@ -21,10 +21,11 @@
 
 import _ from 'underscore'
 import $ from 'jquery'
+import { showMessage, TOAST_DEFAULT_TIMEOUT, TOAST_PERMANENT_TIMEOUT } from '@nextcloud/dialogs'
 
 /**
  * @todo Write documentation
- * @deprecated 17.0.0 use OCP.Toast
+ * @deprecated 17.0.0 use the `@nextcloud/dialogs` package instead
  * @namespace OC.Notification
  */
 export default {
@@ -35,9 +36,9 @@ export default {
 
 	/**
 	 * @param {Function} callback callback function
-	 * @deprecated 17.0.0 use OCP.Toast
+	 * @deprecated 17.0.0 use the `@nextcloud/dialogs` package
 	 */
-	setDefault: function(callback) {
+	setDefault(callback) {
 		this.getDefaultNotificationFunction = callback
 	},
 
@@ -49,9 +50,9 @@ export default {
 	 *
 	 * @param {jQuery} [$row] notification row
 	 * @param {Function} [callback] callback
-	 * @deprecated 17.0.0 use OCP.Toast
+	 * @deprecated 17.0.0 use the `@nextcloud/dialogs` package
 	 */
-	hide: function($row, callback) {
+	hide($row, callback) {
 		if (_.isFunction($row)) {
 			// first arg is the callback
 			callback = $row
@@ -65,7 +66,11 @@ export default {
 
 		// remove the row directly
 		$row.each(function() {
-			$(this)[0].toastify.hideToast()
+			if ($(this)[0].toastify) {
+				$(this)[0].toastify.hideToast()
+			} else {
+				console.error('cannot hide toast because object is not set')
+			}
 			if (this === this.updatableNotification) {
 				this.updatableNotification = null
 			}
@@ -88,13 +93,14 @@ export default {
 	 * @param {string} [options.type] notification type
 	 * @param {int} [options.timeout=0] timeout value, defaults to 0 (permanent)
 	 * @returns {jQuery} jQuery element for notification row
-	 * @deprecated 17.0.0 use OCP.Toast
+	 * @deprecated 17.0.0 use the `@nextcloud/dialogs` package
 	 */
-	showHtml: function(html, options) {
+	showHtml(html, options) {
 		options = options || {}
 		options.isHTML = true
-		options.timeout = (!options.timeout) ? -1 : options.timeout
-		const toast = window.OCP.Toast.message(html, options)
+		options.timeout = (!options.timeout) ? TOAST_PERMANENT_TIMEOUT : options.timeout
+		const toast = showMessage(html, options)
+		toast.toastElement.toastify = toast
 		return $(toast.toastElement)
 	},
 
@@ -106,12 +112,22 @@ export default {
 	 * @param {string} [options.type] notification type
 	 * @param {int} [options.timeout=0] timeout value, defaults to 0 (permanent)
 	 * @returns {jQuery} jQuery element for notification row
-	 * @deprecated 17.0.0 use OCP.Toast
+	 * @deprecated 17.0.0 use the `@nextcloud/dialogs` package
 	 */
-	show: function(text, options) {
+	show(text, options) {
+		const escapeHTML = function(text) {
+			return text.toString()
+				.split('&').join('&amp;')
+				.split('<').join('&lt;')
+				.split('>').join('&gt;')
+				.split('"').join('&quot;')
+				.split('\'').join('&#039;')
+		}
+
 		options = options || {}
-		options.timeout = (!options.timeout) ? -1 : options.timeout
-		const toast = window.OCP.Toast.message(text, options)
+		options.timeout = (!options.timeout) ? TOAST_PERMANENT_TIMEOUT : options.timeout
+		const toast = showMessage(escapeHTML(text), options)
+		toast.toastElement.toastify = toast
 		return $(toast.toastElement)
 	},
 
@@ -120,13 +136,14 @@ export default {
 	 *
 	 * @param {string} text Message to display
 	 * @returns {jQuery} JQuery element for notificaiton row
-	 * @deprecated 17.0.0 use OCP.Toast
+	 * @deprecated 17.0.0 use the `@nextcloud/dialogs` package
 	 */
-	showUpdate: function(text) {
+	showUpdate(text) {
 		if (this.updatableNotification) {
 			this.updatableNotification.hideToast()
 		}
-		this.updatableNotification = OCP.Toast.message(text, { timeout: -1 })
+		this.updatableNotification = showMessage(text, { timeout: TOAST_PERMANENT_TIMEOUT })
+		this.updatableNotification.toastElement.toastify = this.updatableNotification
 		return $(this.updatableNotification.toastElement)
 	},
 
@@ -140,21 +157,22 @@ export default {
 	 * @param {boolean} [options.isHTML=false] an indicator for HTML notifications (true) or text (false)
 	 * @param {string} [options.type] notification type
 	 * @returns {JQuery<any>} the toast element
-	 * @deprecated 17.0.0 use OCP.Toast
+	 * @deprecated 17.0.0 use the `@nextcloud/dialogs` package
 	 */
-	showTemporary: function(text, options) {
+	showTemporary(text, options) {
 		options = options || {}
-		options.timeout = options.timeout || 7
-		const toast = window.OCP.Toast.message(text, options)
+		options.timeout = options.timeout || TOAST_DEFAULT_TIMEOUT
+		const toast = showMessage(text, options)
+		toast.toastElement.toastify = toast
 		return $(toast.toastElement)
 	},
 
 	/**
 	 * Returns whether a notification is hidden.
 	 * @returns {boolean}
-	 * @deprecated 17.0.0 use OCP.Toast
+	 * @deprecated 17.0.0 use the `@nextcloud/dialogs` package
 	 */
-	isHidden: function() {
+	isHidden() {
 		return !$('#content').find('.toastify').length
-	}
+	},
 }

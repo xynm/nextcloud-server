@@ -25,7 +25,7 @@
 			class="option"
 			@input="updateCheck"
 			@valid="(valid=true) && validate()"
-			@invalid="(valid=false) && validate()" />
+			@invalid="!(valid=false) && validate()" />
 		<input v-else
 			v-model="check.value"
 			type="text"
@@ -41,9 +41,9 @@
 </template>
 
 <script>
-import { Multiselect } from 'nextcloud-vue/dist/Components/Multiselect'
-import { Actions } from 'nextcloud-vue/dist/Components/Actions'
-import { ActionButton } from 'nextcloud-vue/dist/Components/ActionButton'
+import Multiselect from '@nextcloud/vue/dist/Components/Multiselect'
+import Actions from '@nextcloud/vue/dist/Components/Actions'
+import ActionButton from '@nextcloud/vue/dist/Components/ActionButton'
 import ClickOutside from 'vue-click-outside'
 
 export default {
@@ -51,20 +51,20 @@ export default {
 	components: {
 		ActionButton,
 		Actions,
-		Multiselect
+		Multiselect,
 	},
 	directives: {
-		ClickOutside
+		ClickOutside,
 	},
 	props: {
 		check: {
 			type: Object,
-			required: true
+			required: true,
 		},
 		rule: {
 			type: Object,
-			required: true
-		}
+			required: true,
+		},
 	},
 	data() {
 		return {
@@ -72,7 +72,7 @@ export default {
 			currentOption: null,
 			currentOperator: null,
 			options: [],
-			valid: true
+			valid: false,
 		}
 	},
 	computed: {
@@ -81,7 +81,11 @@ export default {
 		},
 		operators() {
 			if (!this.currentOption) { return [] }
-			return this.checks[this.currentOption.class].operators
+			const operators = this.checks[this.currentOption.class].operators
+			if (typeof operators === 'function') {
+				return operators(this.check)
+			}
+			return operators
 		},
 		currentComponent() {
 			if (!this.currentOption) { return [] }
@@ -92,17 +96,22 @@ export default {
 				return this.currentOption.placeholder(this.check)
 			}
 			return ''
-		}
+		},
 	},
 	watch: {
-		'check.operator': function() {
+		'check.operator'() {
 			this.validate()
-		}
+		},
 	},
 	mounted() {
 		this.options = Object.values(this.checks)
 		this.currentOption = this.checks[this.check.class]
 		this.currentOperator = this.operators.find((operator) => operator.operator === this.check.operator)
+
+		if (this.check.class === null) {
+			this.$nextTick(() => this.$refs.checkSelector.$el.focus())
+		}
+		this.validate()
 	},
 	methods: {
 		showDelete() {
@@ -112,24 +121,26 @@ export default {
 			this.deleteVisible = false
 		},
 		validate() {
+			this.valid = true
 			if (this.currentOption && this.currentOption.validate) {
 				this.valid = !!this.currentOption.validate(this.check)
 			}
-			return this.valid
+			this.check.invalid = !this.valid
+			this.$emit('validate', this.valid)
 		},
 		updateCheck() {
-			if (this.check.class !== this.currentOption.class) {
+			const matchingOperator = this.operators.findIndex((operator) => this.check.operator === operator.operator)
+			if (this.check.class !== this.currentOption.class || matchingOperator === -1) {
 				this.currentOperator = this.operators[0]
 			}
 			this.check.class = this.currentOption.class
 			this.check.operator = this.currentOperator.operator
 
-			if (!this.validate()) {
-				this.check.invalid = !this.valid
-			}
+			this.validate()
+
 			this.$emit('update', this.check)
-		}
-	}
+		},
+	},
 }
 </script>
 

@@ -20,13 +20,13 @@
 		 *
 		 * @param {OCA.Files.FileList} fileList file list to be extended
 		 */
-		attach: function(fileList) {
+		attach(fileList) {
 			if (fileList.id === 'trashbin' || fileList.id === 'files.public') {
 				return
 			}
 
 			fileList.registerTabView(new OCA.Versions.VersionsTabView('versionsTabView', { order: -10 }))
-		}
+		},
 	}
 })()
 

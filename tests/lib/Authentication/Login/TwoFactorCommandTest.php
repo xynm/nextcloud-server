@@ -45,7 +45,7 @@ class TwoFactorCommandTest extends ALoginCommandTest {
 	/** @var IURLGenerator|MockObject */
 	private $urlGenerator;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->twoFactorManager = $this->createMock(Manager::class);
@@ -355,5 +355,4 @@ class TwoFactorCommandTest extends ALoginCommandTest {
 		$this->assertTrue($result->isSuccess());
 		$this->assertEquals('two/factor/url', $result->getRedirectUrl());
 	}
-
 }

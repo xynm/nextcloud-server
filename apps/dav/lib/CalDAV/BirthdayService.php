@@ -1,14 +1,16 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  * @copyright Copyright (c) 2019, Georg Ehrke
  *
  * @author Achim Königs <garfonso@tratschtante.de>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Georg Ehrke <oc.list@georgehrke.com>
- * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <robin@icewind.nl>
- * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Sven Strickroth <email@cs-ware.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
  * @license AGPL-3.0
@@ -23,7 +25,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -49,8 +51,7 @@ use Sabre\VObject\Reader;
  * @package OCA\DAV\CalDAV
  */
 class BirthdayService {
-
-	const BIRTHDAY_CALENDAR_URI = 'contact_birthdays';
+	public const BIRTHDAY_CALENDAR_URI = 'contact_birthdays';
 
 	/** @var GroupPrincipalBackend */
 	private $principalBackend;
@@ -165,8 +166,8 @@ class BirthdayService {
 		}
 		$this->calDavBackEnd->createCalendar($principal, self::BIRTHDAY_CALENDAR_URI, [
 			'{DAV:}displayname' => 'Contact birthdays',
-			'{http://apple.com/ns/ical/}calendar-color' => '#FFFFCA',
-			'components'   => 'VEVENT',
+			'{http://apple.com/ns/ical/}calendar-color' => '#E9D859',
+			'components' => 'VEVENT',
 		]);
 
 		return $this->calDavBackEnd->getCalendarByUri($principal, self::BIRTHDAY_CALENDAR_URI);
@@ -235,7 +236,12 @@ class BirthdayService {
 				}
 			} else {
 				$originalYear = (int)$dateParts['year'];
-
+				// 'X-APPLE-OMIT-YEAR' is not always present, at least iOS 12.4 uses the hard coded date of 1604 (the start of the gregorian calendar) when the year is unknown
+				if ($originalYear == 1604) {
+					$originalYear = null;
+					$unknownYear = true;
+					$birthday = '1970-' . $dateParts['month'] . '-' . $dateParts['date'];
+				}
 				if ($originalYear < 1970) {
 					$birthday = '1970-' . $dateParts['month'] . '-' . $dateParts['date'];
 				}
@@ -256,6 +262,7 @@ class BirthdayService {
 
 		$vCal = new VCalendar();
 		$vCal->VERSION = '2.0';
+		$vCal->PRODID = '-//IDN nextcloud.com//Birthday calendar//EN';
 		$vEvent = $vCal->createComponent('VEVENT');
 		$vEvent->add('DTSTART');
 		$vEvent->DTSTART->setDateTime(
@@ -297,7 +304,7 @@ class BirthdayService {
 		$calendar = $this->calDavBackEnd->getCalendarByUri($principal, self::BIRTHDAY_CALENDAR_URI);
 		$calendarObjects = $this->calDavBackEnd->getCalendarObjects($calendar['id'], CalDavBackend::CALENDAR_TYPE_CALENDAR);
 
-		foreach($calendarObjects as $calendarObject) {
+		foreach ($calendarObjects as $calendarObject) {
 			$this->calDavBackEnd->deleteCalendarObject($calendar['id'], $calendarObject['uri'], CalDavBackend::CALENDAR_TYPE_CALENDAR);
 		}
 	}
@@ -310,9 +317,9 @@ class BirthdayService {
 		$principal = 'principals/users/'.$user;
 		$this->ensureCalendarExists($principal);
 		$books = $this->cardDavBackEnd->getAddressBooksForUser($principal);
-		foreach($books as $book) {
+		foreach ($books as $book) {
 			$cards = $this->cardDavBackEnd->getCards($book['id']);
-			foreach($cards as $card) {
+			foreach ($cards as $card) {
 				$this->onCardChanged((int) $book['id'], $card['uri'], $card['carddata']);
 			}
 		}
@@ -426,8 +433,8 @@ class BirthdayService {
 	 */
 	private function formatTitle(string $field,
 								 string $name,
-								 int $year=null,
-								 bool $supports4Byte=true):string {
+								 int $year = null,
+								 bool $supports4Byte = true):string {
 		if ($supports4Byte) {
 			switch ($field) {
 				case 'BDAY':
@@ -454,7 +461,7 @@ class BirthdayService {
 					return '';
 			}
 		} else {
-			switch($field) {
+			switch ($field) {
 				case 'BDAY':
 					return implode('', [
 						$name,

@@ -25,6 +25,8 @@ declare(strict_types=1);
 
 namespace Test;
 
+use OC\AppFramework\Bootstrap\Coordinator;
+use OCP\IServerContainer;
 use function json_encode;
 use JsonSerializable;
 use OC\InitialStateService;
@@ -36,11 +38,13 @@ class InitialStateServiceTest extends TestCase {
 	/** @var InitialStateService */
 	private $service;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->service = new InitialStateService(
-			$this->createMock(ILogger::class)
+			$this->createMock(ILogger::class),
+			$this->createMock(Coordinator::class),
+			$this->createMock(IServerContainer::class)
 		);
 	}
 
@@ -84,7 +88,7 @@ class InitialStateServiceTest extends TestCase {
 	 * @dataProvider staticData
 	 */
 	public function testLazyData($value) {
-		$this->service->provideLazyInitialState('test', 'key', function() use ($value) {
+		$this->service->provideLazyInitialState('test', 'key', function () use ($value) {
 			return $value;
 		});
 		$data = $this->service->getInitialStates();
@@ -94,5 +98,4 @@ class InitialStateServiceTest extends TestCase {
 			$data
 		);
 	}
-
 }

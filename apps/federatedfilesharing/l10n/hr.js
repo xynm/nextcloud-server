@@ -24,7 +24,9 @@ OC.L10N.register(
     "Sharing %1$s failed, could not find %2$s, maybe the server is currently unreachable or uses a self-signed certificate." : "Dijeljenje %1$s nije uspjelo, nije bilo moguće pronaći %2$s, možda je poslužitelj trenutno nedostupan ili koristi vjerodajnicu koju je sam potpisao.",
     "Could not find share" : "Nije moguće pronaći dijeljenje",
     "Federated sharing" : "Udruženo dijeljenje",
+    "You received \"%3$s\" as a remote share from %4$s (%1$s) (on behalf of %5$s (%2$s))" : "Primili ste „%3$s” kao udaljeno dijeljenje od %4$s (%1$s) (u ime %5$s (%2$s))",
     "You received {share} as a remote share from {user} (on behalf of {behalf})" : "Primili ste {share} kao udaljeno dijeljenje od {user} (u ime {behalf})",
+    "You received \"%3$s\" as a remote share from %4$s (%1$s)" : "Primili ste „%3$s” kao udaljeno dijeljenje od %4$s (%1$s)",
     "You received {share} as a remote share from {user}" : "Primili ste {share} kao udaljeno dijeljenje od {user}",
     "Accept" : "Prihvati",
     "Decline" : "Odbij",
@@ -36,7 +38,7 @@ OC.L10N.register(
     "Federated Cloud Sharing" : "Dijeljenje putem udruženog oblaka",
     "Open documentation" : "Otvori dokumentaciju",
     "Adjust how people can share between servers." : "Prilagodite kako ljudi mogu dijeliti između poslužitelja.",
-    "Allow users on this server to send shares to other servers" : "Dopustite korisnicima na ovom poslužitelju da šalju dijeljenja na druge poslužitelje",
+    "Allow users on this server to send shares to other servers (this option also allows WebDAV access to public shares)" : "Dopustite korisnicima na ovom poslužitelju da šalju dijeljenja na druge poslužitelje (ova mogućnost također omogućuje pristup javnim dijeljenjima putem WebDAV-a)",
     "Allow users on this server to receive shares from other servers" : "Dopustite korisnicima na ovom poslužitelju da primaju dijeljenja s drugih poslužitelja",
     "Allow users on this server to send shares to groups on other servers" : "Dopustite korisnicima na ovom poslužitelju da šalju dijeljenja grupama na drugim poslužiteljima",
     "Allow users on this server to receive group shares from other servers" : "Dopustite korisnicima na ovom poslužitelju da primaju grupna dijeljenja s drugih poslužitelja",
@@ -49,7 +51,6 @@ OC.L10N.register(
     "Add to your website" : "Dodajte na svoje web-mjesto",
     "Share with me via Nextcloud" : "Dijelite sa mnom putem Nextclouda",
     "HTML Code:" : "HTML kod:",
-    "You received \"%3$s\" as a remote share from %1$s (on behalf of %2$s)" : "Primili ste „%3$s” kao udaljeno dijeljenje od %1$s (u ime %2$s)",
-    "You received \"%3$s\" as a remote share from %1$s" : "Primili ste „%3$s” kao udaljeno dijeljenje od %1$s"
+    "Allow users on this server to send shares to other servers" : "Dopustite korisnicima na ovom poslužitelju da šalju dijeljenja na druge poslužitelje"
 },
 "nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;");

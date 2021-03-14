@@ -2,7 +2,13 @@
 /**
  * @copyright Copyright (c) 2016 Lukas Reschke <lukas@statuscode.ch>
  *
+ * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Daniel Kesselberg <mail@danielkesselberg.de>
+ * @author Julius Härtl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -17,13 +23,13 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 namespace OCA\Settings\Tests\Settings\Admin;
 
-use OCA\Settings\Admin\Mail;
+use OCA\Settings\Settings\Admin\Mail;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IConfig;
 use Test\TestCase;
@@ -34,7 +40,7 @@ class MailTest extends TestCase {
 	/** @var IConfig */
 	private $config;
 
-	public function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 		$this->config = $this->getMockBuilder(IConfig::class)->getMock();
 
@@ -105,17 +111,17 @@ class MailTest extends TestCase {
 			'settings/admin/additional-mail',
 			[
 				'sendmail_is_available' => (bool) \OC_Helper::findBinaryPath('sendmail'),
-				'mail_domain'           => 'mx.nextcloud.com',
-				'mail_from_address'     => 'no-reply@nextcloud.com',
-				'mail_smtpmode'         => 'smtp',
-				'mail_smtpsecure'       => true,
-				'mail_smtphost'         => 'smtp.nextcloud.com',
-				'mail_smtpport'         => 25,
-				'mail_smtpauthtype'     => 'login',
-				'mail_smtpauth'         => true,
-				'mail_smtpname'         => 'smtp.sender.com',
-				'mail_smtppassword'     => '********',
-				'mail_sendmailmode'		=> 'smtp',
+				'mail_domain' => 'mx.nextcloud.com',
+				'mail_from_address' => 'no-reply@nextcloud.com',
+				'mail_smtpmode' => 'smtp',
+				'mail_smtpsecure' => true,
+				'mail_smtphost' => 'smtp.nextcloud.com',
+				'mail_smtpport' => 25,
+				'mail_smtpauthtype' => 'login',
+				'mail_smtpauth' => true,
+				'mail_smtpname' => 'smtp.sender.com',
+				'mail_smtppassword' => '********',
+				'mail_sendmailmode' => 'smtp',
 			],
 			''
 		);

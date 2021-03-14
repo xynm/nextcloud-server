@@ -2,8 +2,10 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud GmbH.
  *
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license AGPL-3.0
  *
@@ -17,7 +19,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -57,7 +59,7 @@ class CleanupRemoteStoragesTest extends TestCase {
 		['notExistingId' => 'shared::c34568c143cdac7d2f06e0800b5280f9', 'share_token' => 'f2c69dad1dc0649f26976fd210fc62e7', 'remote' => 'https://hostname.tld/owncloud7', 'user' => 'user7'],
 	];
 
-	protected function setup() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->connection = \OC::$server->getDatabaseConnection();
@@ -110,7 +112,7 @@ class CleanupRemoteStoragesTest extends TestCase {
 		$this->command = new CleanupRemoteStorages($this->connection);
 	}
 
-	public function tearDown() {
+	protected function tearDown(): void {
 		$storageQuery = \OC::$server->getDatabaseConnection()->getQueryBuilder();
 		$storageQuery->delete('storages')
 			->where($storageQuery->expr()->eq('id', $storageQuery->createParameter('id')));
@@ -133,7 +135,7 @@ class CleanupRemoteStoragesTest extends TestCase {
 			}
 		}
 
-		return parent::tearDown();
+		parent::tearDown();
 	}
 
 	private function doesStorageExist($numericId) {
@@ -141,7 +143,10 @@ class CleanupRemoteStoragesTest extends TestCase {
 		$qb->select('*')
 			->from('storages')
 			->where($qb->expr()->eq('numeric_id', $qb->createNamedParameter($numericId)));
-		$result = $qb->execute()->fetchAll();
+
+		$qResult = $qb->execute();
+		$result = $qResult->fetchAll();
+		$qResult->closeCursor();
 		if (!empty($result)) {
 			return true;
 		}
@@ -150,7 +155,10 @@ class CleanupRemoteStoragesTest extends TestCase {
 		$qb->select('*')
 			->from('filecache')
 			->where($qb->expr()->eq('storage', $qb->createNamedParameter($numericId)));
-		$result = $qb->execute()->fetchAll();
+
+		$qResult = $qb->execute();
+		$result = $qResult->fetchAll();
+		$qResult->closeCursor();
 		if (!empty($result)) {
 			return true;
 		}
@@ -190,6 +198,5 @@ class CleanupRemoteStoragesTest extends TestCase {
 		$this->assertFalse($this->doesStorageExist($this->storages[3]['numeric_id']));
 		$this->assertTrue($this->doesStorageExist($this->storages[4]['numeric_id']));
 		$this->assertFalse($this->doesStorageExist($this->storages[5]['numeric_id']));
-
 	}
 }

@@ -56,33 +56,33 @@ import escapeHTML from 'escape-html'
  * Inspired by micro templating done by e.g. underscore.js
  */
 const Template = {
-	init: function(vars, options, elem) {
+	init(vars, options, elem) {
 		// Mix in the passed in options with the default options
 		this.vars = vars
 		this.options = $.extend({}, this.options, options)
 
 		this.elem = elem
-		var self = this
+		const self = this
 
 		if (typeof this.options.escapeFunction === 'function') {
-			var keys = Object.keys(this.vars)
-			for (var key = 0; key < keys.length; key++) {
+			const keys = Object.keys(this.vars)
+			for (let key = 0; key < keys.length; key++) {
 				if (typeof this.vars[keys[key]] === 'string') {
 					this.vars[keys[key]] = self.options.escapeFunction(this.vars[keys[key]])
 				}
 			}
 		}
 
-		var _html = this._build(this.vars)
+		const _html = this._build(this.vars)
 		return $(_html)
 	},
 	// From stackoverflow.com/questions/1408289/best-way-to-do-variable-interpolation-in-javascript
-	_build: function(o) {
-		var data = this.elem.attr('type') === 'text/template' ? this.elem.html() : this.elem.get(0).outerHTML
+	_build(o) {
+		const data = this.elem.attr('type') === 'text/template' ? this.elem.html() : this.elem.get(0).outerHTML
 		try {
 			return data.replace(/{([^{}]*)}/g,
 				function(a, b) {
-					var r = o[b]
+					const r = o[b]
 					return typeof r === 'string' || typeof r === 'number' ? r : a
 				}
 			)
@@ -91,14 +91,14 @@ const Template = {
 		}
 	},
 	options: {
-		escapeFunction: escapeHTML
-	}
+		escapeFunction: escapeHTML,
+	},
 }
 
 $.fn.octemplate = function(vars, options) {
 	vars = vars || {}
 	if (this.length) {
-		var _template = Object.create(Template)
+		const _template = Object.create(Template)
 		return _template.init(vars, options, this)
 	}
 }

@@ -28,17 +28,8 @@
 		<table v-if="clients.length > 0" class="grid">
 			<thead>
 				<tr>
-					<th id="headerName" scope="col">
-						{{ t('oauth2', 'Name') }}
-					</th>
-					<th id="headerRedirectUri" scope="col">
-						{{ t('oauth2', 'Redirection URI') }}
-					</th>
-					<th id="headerClientIdentifier" scope="col">
-						{{ t('oauth2', 'Client Identifier') }}
-					</th>
-					<th id="headerSecret" scope="col">
-						{{ t('oauth2', 'Secret') }}
+					<th id="headerContent">
+
 					</th>
 					<th id="headerRemove">
 &nbsp;
@@ -80,27 +71,27 @@ import { generateUrl } from '@nextcloud/router'
 export default {
 	name: 'App',
 	components: {
-		OAuthItem
+		OAuthItem,
 	},
 	props: {
 		clients: {
 			type: Array,
-			required: true
-		}
+			required: true,
+		},
 	},
-	data: function() {
+	data() {
 		return {
 			newClient: {
 				name: '',
 				redirectUri: '',
 				errorMsg: '',
-				error: false
-			}
+				error: false,
+			},
 		}
 	},
 	methods: {
 		deleteClient(id) {
-			axios.delete(generateUrl('apps/oauth2/clients/{id}', { id: id }))
+			axios.delete(generateUrl('apps/oauth2/clients/{id}', { id }))
 				.then((response) => {
 					this.clients = this.clients.filter(client => client.id !== id)
 				})
@@ -112,7 +103,7 @@ export default {
 				generateUrl('apps/oauth2/clients'),
 				{
 					name: this.newClient.name,
-					redirectUri: this.newClient.redirectUri
+					redirectUri: this.newClient.redirectUri,
 				}
 			).then(response => {
 				this.clients.push(response.data)
@@ -123,7 +114,12 @@ export default {
 				this.newClient.error = true
 				this.newClient.errorMsg = reason.response.data.message
 			})
-		}
-	}
+		},
+	},
 }
 </script>
+<style scoped>
+	table {
+		max-width: 800px;
+	}
+</style>

@@ -36,29 +36,29 @@ import $ from 'jquery'
 *	@licens							MIT License - http://www.opensource.org/licenses/mit-license.php
 */
 $.fn.extend({
-	showPassword: function(c) {
+	showPassword(c) {
 
 		// Setup callback object
-		var callback = { 'fn': null, 'args': {} }
+		const callback = { fn: null, args: {} }
 		callback.fn = c
 
 		// Clones passwords and turn the clones into text inputs
-		var cloneElement = function(element) {
+		const cloneElement = function(element) {
 
-			var $element = $(element)
+			const $element = $(element)
 
-			var $clone = $('<input />')
+			const $clone = $('<input />')
 
 			// Name added for JQuery Validation compatibility
 			// Element name is required to avoid script warning.
 			$clone.attr({
-				'type': 'text',
-				'class': $element.attr('class'),
-				'style': $element.attr('style'),
-				'size': $element.attr('size'),
-				'name': $element.attr('name') + '-clone',
-				'tabindex': $element.attr('tabindex'),
-				'autocomplete': 'off'
+				type: 'text',
+				class: $element.attr('class'),
+				style: $element.attr('style'),
+				size: $element.attr('size'),
+				name: $element.attr('name') + '-clone',
+				tabindex: $element.attr('tabindex'),
+				autocomplete: 'off',
 			})
 
 			if ($element.attr('placeholder') !== undefined) {
@@ -70,12 +70,12 @@ $.fn.extend({
 		}
 
 		// Transfers values between two elements
-		var update = function(a, b) {
+		const update = function(a, b) {
 			b.val(a.val())
 		}
 
 		// Shows a or b depending on checkbox
-		var setState = function(checkbox, a, b) {
+		const setState = function(checkbox, a, b) {
 
 			if (checkbox.is(':checked')) {
 				update(a, b)
@@ -91,11 +91,11 @@ $.fn.extend({
 
 		return this.each(function() {
 
-			var $input = $(this)
-			var $checkbox = $($input.data('typetoggle'))
+			const $input = $(this)
+			const $checkbox = $($input.data('typetoggle'))
 
 			// Create clone
-			var $clone = cloneElement($input)
+			const $clone = cloneElement($input)
 			$clone.insertAfter($input)
 
 			// Set callback arguments
@@ -144,5 +144,5 @@ $.fn.extend({
 			}
 
 		})
-	}
+	},
 })

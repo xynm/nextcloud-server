@@ -21,7 +21,7 @@
   -->
 
 <template>
-	<ul class="sharing-link-list">
+	<ul v-if="canLinkShare" class="sharing-link-list">
 		<!-- If no link shares, show the add link default entry -->
 		<SharingEntryLink v-if="!hasLinkShares && canReshare"
 			:can-reshare="canReshare"
@@ -53,7 +53,7 @@ export default {
 	name: 'SharingLinkList',
 
 	components: {
-		SharingEntryLink
+		SharingEntryLink,
 	},
 
 	mixins: [ShareTypes],
@@ -62,16 +62,22 @@ export default {
 		fileInfo: {
 			type: Object,
 			default: () => {},
-			required: true
+			required: true,
 		},
 		shares: {
 			type: Array,
 			default: () => [],
-			required: true
+			required: true,
 		},
 		canReshare: {
 			type: Boolean,
-			required: true
+			required: true,
+		},
+	},
+
+	data() {
+		return {
+			canLinkShare: OC.getCapabilities().files_sharing.public.enabled,
 		}
 	},
 
@@ -94,7 +100,7 @@ export default {
 		 */
 		hasShares() {
 			return this.shares.length > 0
-		}
+		},
 	},
 
 	methods: {
@@ -135,7 +141,7 @@ export default {
 		removeShare(share) {
 			const index = this.shares.findIndex(item => item === share)
 			this.shares.splice(index, 1)
-		}
-	}
+		},
+	},
 }
 </script>

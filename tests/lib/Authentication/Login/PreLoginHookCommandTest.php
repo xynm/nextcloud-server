@@ -35,7 +35,7 @@ class PreLoginHookCommandTest extends ALoginCommandTest {
 	/** @var IUserManager|MockObject */
 	private $userManager;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->userManager = $this->createMock(Manager::class);
@@ -62,5 +62,4 @@ class PreLoginHookCommandTest extends ALoginCommandTest {
 
 		$this->assertTrue($result->isSuccess());
 	}
-
 }

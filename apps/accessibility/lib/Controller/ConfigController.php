@@ -1,8 +1,16 @@
 <?php
-declare (strict_types = 1);
+
+declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2018 John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
  * @copyright Copyright (c) 2019 Janis Köhr <janiskoehr@icloud.com>
+ *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Daniel Kesselberg <mail@danielkesselberg.de>
+ * @author Janis Köhr <janis.koehr@novatec-gmbh.de>
+ * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -17,20 +25,20 @@ declare (strict_types = 1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 namespace OCA\Accessibility\Controller;
 
 use OCA\Accessibility\AccessibilityProvider;
-use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCS\OCSBadRequestException;
 use OCP\AppFramework\OCSController;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IUserSession;
+use OCP\PreConditionNotMetException;
 
 class ConfigController extends OCSController {
 
@@ -67,11 +75,11 @@ class ConfigController extends OCSController {
 								IUserSession $userSession,
 								AccessibilityProvider $accessibilityProvider) {
 		parent::__construct($appName, $request);
-		$this->appName               = $appName;
-		$this->config                = $config;
-		$this->userSession           = $userSession;
+		$this->appName = $appName;
+		$this->config = $config;
+		$this->userSession = $userSession;
 		$this->accessibilityProvider = $accessibilityProvider;
-		$this->userId				 = $userSession->getUser()->getUID();
+		$this->userId = $userSession->getUser()->getUID();
 	}
 
 	/**
@@ -97,20 +105,19 @@ class ConfigController extends OCSController {
 	 *
 	 * @param string $key theme or font
 	 * @return DataResponse
-	 * @throws Exception
+	 * @throws OCSBadRequestException|PreConditionNotMetException
 	 */
 	public function setConfig(string $key, $value): DataResponse {
 		if ($key === 'theme' || $key === 'font' || $key === 'highcontrast') {
-
 			if ($value === false || $value === '') {
 				throw new OCSBadRequestException('Invalid value: ' . $value);
 			}
 
 			$themes = $this->accessibilityProvider->getThemes();
-			$highcontrast = array($this->accessibilityProvider->getHighContrast());
-			$fonts  = $this->accessibilityProvider->getFonts();
+			$highcontrast = [$this->accessibilityProvider->getHighContrast()];
+			$fonts = $this->accessibilityProvider->getFonts();
 
-			$availableOptions = array_map(function($option) {
+			$availableOptions = array_map(function ($option): string {
 				return $option['id'];
 			}, array_merge($themes, $highcontrast, $fonts));
 
@@ -132,11 +139,10 @@ class ConfigController extends OCSController {
 	 *
 	 * @param string $key theme or font
 	 * @return DataResponse
-	 * @throws Exception
+	 * @throws OCSBadRequestException
 	 */
 	public function deleteConfig(string $key): DataResponse {
 		if ($key === 'theme' || $key === 'font' || $key === 'highcontrast') {
-
 			$this->config->deleteUserValue($this->userId, $this->appName, $key);
 			$userValues = $this->config->getUserKeys($this->userId, $this->appName);
 
@@ -150,5 +156,4 @@ class ConfigController extends OCSController {
 
 		throw new OCSBadRequestException('Invalid key: ' . $key);
 	}
-
 }

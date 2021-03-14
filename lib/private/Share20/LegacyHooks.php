@@ -1,8 +1,10 @@
 <?php
-
 /**
  * @copyright 2017, Roeland Jago Douma <roeland@famdouma.nl>
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
  * @author Pauli Järvinen <pauli.jarvinen@gmail.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
@@ -19,7 +21,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -74,7 +76,7 @@ class LegacyHooks {
 		/** @var IShare[] $deletedShares */
 		$deletedShares = $e->getArgument('deletedShares');
 
-		$formattedDeletedShares = array_map(function($share) {
+		$formattedDeletedShares = array_map(function ($share) {
 			return $this->formatHookParams($share);
 		}, $deletedShares);
 
@@ -101,9 +103,9 @@ class LegacyHooks {
 		// Prepare hook
 		$shareType = $share->getShareType();
 		$sharedWith = '';
-		if ($shareType === \OCP\Share::SHARE_TYPE_USER ||
-			$shareType === \OCP\Share::SHARE_TYPE_GROUP ||
-			$shareType === \OCP\Share::SHARE_TYPE_REMOTE) {
+		if ($shareType === IShare::TYPE_USER ||
+			$shareType === IShare::TYPE_GROUP ||
+			$shareType === IShare::TYPE_REMOTE) {
 			$sharedWith = $share->getSharedWith();
 		}
 
@@ -172,6 +174,5 @@ class LegacyHooks {
 		];
 
 		\OC_Hook::emit(Share::class, 'post_shared', $postHookData);
-
 	}
 }

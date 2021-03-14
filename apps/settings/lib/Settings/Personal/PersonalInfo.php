@@ -1,10 +1,20 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2017 Arthur Schiwon <blizzz@arthur-schiwon.de>
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Georg Ehrke <oc.list@georgehrke.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
- * @author Thomas Citharel <tcit@tcit.fr>
+ * @author Robin Appelman <robin@icewind.nl>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Citharel <nextcloud@tcit.fr>
+ * @author Vincent Petry <vincent@nextcloud.com>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -19,14 +29,15 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-namespace OCA\Settings\Personal;
+namespace OCA\Settings\Settings\Personal;
 
 use OC\Accounts\AccountManager;
-use OCA\FederatedFileSharing\AppInfo\Application;
+use OCA\FederatedFileSharing\FederatedShareProvider;
+use OCP\Accounts\IAccountManager;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\Files\FileInfo;
@@ -56,14 +67,6 @@ class PersonalInfo implements ISettings {
 	/** @var IL10N */
 	private $l;
 
-	/**
-	 * @param IConfig $config
-	 * @param IUserManager $userManager
-	 * @param IGroupManager $groupManager
-	 * @param AccountManager $accountManager
-	 * @param IFactory $l10nFactory
-	 * @param IL10N $l
-	 */
 	public function __construct(
 		IConfig $config,
 		IUserManager $userManager,
@@ -82,22 +85,21 @@ class PersonalInfo implements ISettings {
 		$this->l = $l;
 	}
 
-	/**
-	 * @return TemplateResponse returns the instance with all parameters set, ready to be rendered
-	 * @since 9.1
-	 */
-	public function getForm() {
+	public function getForm(): TemplateResponse {
 		$federatedFileSharingEnabled = $this->appManager->isEnabledForUser('federatedfilesharing');
 		$lookupServerUploadEnabled = false;
-		if($federatedFileSharingEnabled) {
-			$federatedFileSharing = \OC::$server->query(Application::class);
-			$shareProvider = $federatedFileSharing->getFederatedShareProvider();
+		if ($federatedFileSharingEnabled) {
+			/** @var FederatedShareProvider $shareProvider */
+			$shareProvider = \OC::$server->query(FederatedShareProvider::class);
 			$lookupServerUploadEnabled = $shareProvider->isLookupServerUploadEnabled();
 		}
 
 		$uid = \OC_User::getUser();
 		$user = $this->userManager->get($uid);
 		$userData = $this->accountManager->getUser($user);
+
+		// make sure FS is setup before querying storage related stuff...
+		\OC_Util::setupFS($user->getUID());
 
 		$storageInfo = \OC_Helper::getStorageInfo('/');
 		if ($storageInfo['quota'] === FileInfo::SPACE_UNLIMITED) {
@@ -117,23 +119,23 @@ class PersonalInfo implements ISettings {
 			'quota' => $storageInfo['quota'],
 			'avatarChangeSupported' => $user->canChangeAvatar(),
 			'lookupServerUploadEnabled' => $lookupServerUploadEnabled,
-			'avatarScope' => $userData[AccountManager::PROPERTY_AVATAR]['scope'],
+			'avatarScope' => $userData[IAccountManager::PROPERTY_AVATAR]['scope'],
 			'displayNameChangeSupported' => $user->canChangeDisplayName(),
-			'displayName' => $userData[AccountManager::PROPERTY_DISPLAYNAME]['value'],
-			'displayNameScope' => $userData[AccountManager::PROPERTY_DISPLAYNAME]['scope'],
-			'email' => $userData[AccountManager::PROPERTY_EMAIL]['value'],
-			'emailScope' => $userData[AccountManager::PROPERTY_EMAIL]['scope'],
-			'emailVerification' => $userData[AccountManager::PROPERTY_EMAIL]['verified'],
-			'phone' => $userData[AccountManager::PROPERTY_PHONE]['value'],
-			'phoneScope' => $userData[AccountManager::PROPERTY_PHONE]['scope'],
-			'address' => $userData[AccountManager::PROPERTY_ADDRESS]['value'],
-			'addressScope' => $userData[AccountManager::PROPERTY_ADDRESS]['scope'],
-			'website' =>  $userData[AccountManager::PROPERTY_WEBSITE]['value'],
-			'websiteScope' =>  $userData[AccountManager::PROPERTY_WEBSITE]['scope'],
-			'websiteVerification' => $userData[AccountManager::PROPERTY_WEBSITE]['verified'],
-			'twitter' => $userData[AccountManager::PROPERTY_TWITTER]['value'],
-			'twitterScope' => $userData[AccountManager::PROPERTY_TWITTER]['scope'],
-			'twitterVerification' => $userData[AccountManager::PROPERTY_TWITTER]['verified'],
+			'displayName' => $userData[IAccountManager::PROPERTY_DISPLAYNAME]['value'],
+			'displayNameScope' => $userData[IAccountManager::PROPERTY_DISPLAYNAME]['scope'],
+			'email' => $userData[IAccountManager::PROPERTY_EMAIL]['value'],
+			'emailScope' => $userData[IAccountManager::PROPERTY_EMAIL]['scope'],
+			'emailVerification' => $userData[IAccountManager::PROPERTY_EMAIL]['verified'],
+			'phone' => $userData[IAccountManager::PROPERTY_PHONE]['value'],
+			'phoneScope' => $userData[IAccountManager::PROPERTY_PHONE]['scope'],
+			'address' => $userData[IAccountManager::PROPERTY_ADDRESS]['value'],
+			'addressScope' => $userData[IAccountManager::PROPERTY_ADDRESS]['scope'],
+			'website' => $userData[IAccountManager::PROPERTY_WEBSITE]['value'],
+			'websiteScope' => $userData[IAccountManager::PROPERTY_WEBSITE]['scope'],
+			'websiteVerification' => $userData[IAccountManager::PROPERTY_WEBSITE]['verified'],
+			'twitter' => $userData[IAccountManager::PROPERTY_TWITTER]['value'],
+			'twitterScope' => $userData[IAccountManager::PROPERTY_TWITTER]['scope'],
+			'twitterVerification' => $userData[IAccountManager::PROPERTY_TWITTER]['verified'],
 			'groups' => $this->getGroups($user),
 		] + $messageParameters + $languageParameters + $localeParameters;
 
@@ -145,7 +147,7 @@ class PersonalInfo implements ISettings {
 	 * @return string the section ID, e.g. 'sharing'
 	 * @since 9.1
 	 */
-	public function getSection() {
+	public function getSection(): string {
 		return 'personal-info';
 	}
 
@@ -157,7 +159,7 @@ class PersonalInfo implements ISettings {
 	 * E.g.: 70
 	 * @since 9.1
 	 */
-	public function getPriority() {
+	public function getPriority(): int {
 		return 10;
 	}
 
@@ -167,9 +169,9 @@ class PersonalInfo implements ISettings {
 	 * @param IUser $user
 	 * @return array
 	 */
-	private function getGroups(IUser $user) {
+	private function getGroups(IUser $user): array {
 		$groups = array_map(
-			function(IGroup $group) {
+			static function (IGroup $group) {
 				return $group->getDisplayName();
 			},
 			$this->groupManager->getUserGroups($user)
@@ -186,9 +188,9 @@ class PersonalInfo implements ISettings {
 	 * @param IUser $user
 	 * @return array
 	 */
-	private function getLanguages(IUser $user) {
+	private function getLanguages(IUser $user): array {
 		$forceLanguage = $this->config->getSystemValue('force_language', false);
-		if($forceLanguage !== false) {
+		if ($forceLanguage !== false) {
 			return [];
 		}
 
@@ -214,14 +216,14 @@ class PersonalInfo implements ISettings {
 		}
 
 		return array_merge(
-			array('activelanguage' => $userLang),
+			['activelanguage' => $userLang],
 			$languages
 		);
 	}
 
-	private function getLocales(IUser $user) {
+	private function getLocales(IUser $user): array {
 		$forceLanguage = $this->config->getSystemValue('force_locale', false);
-		if($forceLanguage !== false) {
+		if ($forceLanguage !== false) {
 			return [];
 		}
 
@@ -233,18 +235,24 @@ class PersonalInfo implements ISettings {
 
 		$localeCodes = $this->l10nFactory->findAvailableLocales();
 
-		$userLocale = array_filter($localeCodes, function($value) use ($userLocaleString) {
+		$userLocale = array_filter($localeCodes, function ($value) use ($userLocaleString) {
 			return $userLocaleString === $value['code'];
 		});
 
-		if (!empty($userLocale))
-		{
+		if (!empty($userLocale)) {
 			$userLocale = reset($userLocale);
 		}
 
-		$localesForLanguage = array_filter($localeCodes, function($localeCode) use ($userLang) {
+		$localesForLanguage = array_filter($localeCodes, function ($localeCode) use ($userLang) {
 			return 0 === strpos($localeCode['code'], $userLang);
 		});
+
+		if (!$userLocale) {
+			$userLocale = [
+				'code' => 'en',
+				'name' => 'English'
+			];
+		}
 
 		return [
 			'activelocaleLang' => $userLocaleString,
@@ -258,8 +266,8 @@ class PersonalInfo implements ISettings {
 	 * @param array $userData
 	 * @return array
 	 */
-	private function getMessageParameters(array $userData) {
-		$needVerifyMessage = [AccountManager::PROPERTY_EMAIL, AccountManager::PROPERTY_WEBSITE, AccountManager::PROPERTY_TWITTER];
+	private function getMessageParameters(array $userData): array {
+		$needVerifyMessage = [IAccountManager::PROPERTY_EMAIL, IAccountManager::PROPERTY_WEBSITE, IAccountManager::PROPERTY_TWITTER];
 		$messageParameters = [];
 		foreach ($needVerifyMessage as $property) {
 			switch ($userData[$property]['verified']) {
@@ -276,5 +284,4 @@ class PersonalInfo implements ISettings {
 		}
 		return $messageParameters;
 	}
-
 }

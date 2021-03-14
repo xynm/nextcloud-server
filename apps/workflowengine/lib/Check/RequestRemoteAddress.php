@@ -21,7 +21,6 @@
 
 namespace OCA\WorkflowEngine\Check;
 
-
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\WorkflowEngine\ICheck;
@@ -54,9 +53,9 @@ class RequestRemoteAddress implements ICheck {
 
 		if ($operator === 'matchesIPv4') {
 			return $this->matchIPv4($actualValue, $decodedValue[0], $decodedValue[1]);
-		} else if ($operator === '!matchesIPv4') {
+		} elseif ($operator === '!matchesIPv4') {
 			return !$this->matchIPv4($actualValue, $decodedValue[0], $decodedValue[1]);
-		} else if ($operator === 'matchesIPv6') {
+		} elseif ($operator === 'matchesIPv6') {
 			return $this->matchIPv6($actualValue, $decodedValue[0], $decodedValue[1]);
 		} else {
 			return !$this->matchIPv6($actualValue, $decodedValue[0], $decodedValue[1]);
@@ -96,7 +95,7 @@ class RequestRemoteAddress implements ICheck {
 	}
 
 	/**
-	 * Based on http://stackoverflow.com/a/594134
+	 * Based on https://stackoverflow.com/a/594134
 	 * @param string $ip
 	 * @param string $rangeIp
 	 * @param int $bits
@@ -110,7 +109,7 @@ class RequestRemoteAddress implements ICheck {
 	}
 
 	/**
-	 * Based on http://stackoverflow.com/a/7951507
+	 * Based on https://stackoverflow.com/a/7951507
 	 * @param string $ip
 	 * @param string $rangeIp
 	 * @param int $bits
@@ -129,7 +128,7 @@ class RequestRemoteAddress implements ICheck {
 	}
 
 	/**
-	 * Based on http://stackoverflow.com/a/7951507
+	 * Based on https://stackoverflow.com/a/7951507
 	 * @param string $packedIp
 	 * @return string
 	 */

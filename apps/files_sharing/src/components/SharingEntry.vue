@@ -23,41 +23,77 @@
 <template>
 	<li class="sharing-entry">
 		<Avatar class="sharing-entry__avatar"
+			:is-no-user="share.type !== SHARE_TYPES.SHARE_TYPE_USER"
 			:user="share.shareWith"
 			:display-name="share.shareWithDisplayName"
+			:tooltip-message="share.type === SHARE_TYPES.SHARE_TYPE_USER ? share.shareWith : ''"
+			:menu-position="'left'"
 			:url="share.shareWithAvatar" />
-		<div v-tooltip.auto="tooltip" class="sharing-entry__desc">
-			<h5>{{ title }}</h5>
-		</div>
-		<Actions menu-align="right" class="sharing-entry__actions">
+		<component :is="share.shareWithLink ? 'a' : 'div'"
+			:href="share.shareWithLink"
+			v-tooltip.auto="tooltip"
+			class="sharing-entry__desc">
+			<h5>{{ title }}<span v-if="!isUnique" class="sharing-entry__desc-unique"> ({{ share.shareWithDisplayNameUnique }})</span></h5>
+			<p v-if="hasStatus">
+				<span>{{ share.status.icon || '' }}</span>
+				<span>{{ share.status.message || '' }}</span>
+			</p>
+		</component>
+		<Actions
+			menu-align="right"
+			class="sharing-entry__actions"
+			@close="onMenuClose">
 			<template v-if="share.canEdit">
 				<!-- edit permission -->
 				<ActionCheckbox
 					ref="canEdit"
 					:checked.sync="canEdit"
 					:value="permissionsEdit"
-					:disabled="saving">
+					:disabled="saving || !canSetEdit">
 					{{ t('files_sharing', 'Allow editing') }}
+				</ActionCheckbox>
+
+				<!-- create permission -->
+				<ActionCheckbox
+					v-if="isFolder"
+					ref="canCreate"
+					:checked.sync="canCreate"
+					:value="permissionsCreate"
+					:disabled="saving || !canSetCreate">
+					{{ t('files_sharing', 'Allow creating') }}
+				</ActionCheckbox>
+
+				<!-- delete permission -->
+				<ActionCheckbox
+					v-if="isFolder"
+					ref="canDelete"
+					:checked.sync="canDelete"
+					:value="permissionsDelete"
+					:disabled="saving || !canSetDelete">
+					{{ t('files_sharing', 'Allow deleting') }}
 				</ActionCheckbox>
 
 				<!-- reshare permission -->
 				<ActionCheckbox
+					v-if="config.isResharingAllowed"
 					ref="canReshare"
 					:checked.sync="canReshare"
 					:value="permissionsShare"
-					:disabled="saving">
-					{{ t('files_sharing', 'Can reshare') }}
+					:disabled="saving || !canSetReshare">
+					{{ t('files_sharing', 'Allow resharing') }}
 				</ActionCheckbox>
 
 				<!-- expiration date -->
-				<ActionCheckbox :checked.sync="hasExpirationDate"
-					:disabled="config.isDefaultExpireDateEnforced || saving"
+				<ActionCheckbox
+					v-if="canHaveExpirationDate"
+					:checked.sync="hasExpirationDate"
+					:disabled="config.isDefaultInternalExpireDateEnforced || saving"
 					@uncheck="onExpirationDisable">
-					{{ config.isDefaultExpireDateEnforced
+					{{ config.isDefaultInternalExpireDateEnforced
 						? t('files_sharing', 'Expiration date enforced')
 						: t('files_sharing', 'Set expiration date') }}
 				</ActionCheckbox>
-				<ActionInput v-if="hasExpirationDate"
+				<ActionInput v-if="canHaveExpirationDate && hasExpirationDate"
 					ref="expireDate"
 					v-tooltip.auto="{
 						content: errors.expireDate,
@@ -69,10 +105,10 @@
 					:first-day-of-week="firstDay"
 					:lang="lang"
 					:value="share.expireDate"
+					value-type="format"
 					icon="icon-calendar-dark"
 					type="date"
-					:not-before="dateTomorrow"
-					:not-after="dateMaxEnforced"
+					:disabled-date="disabledDate"
 					@update:value="onExpirationChange">
 					{{ t('files_sharing', 'Enter a date') }}
 				</ActionInput>
@@ -94,14 +130,15 @@
 						}"
 						:class="{ error: errors.note}"
 						:disabled="saving"
-						:value.sync="share.note"
+						:value="share.newNote || share.note"
 						icon="icon-edit"
-						@update:value="debounceQueueUpdate('note')" />
+						@update:value="onNoteChange"
+						@submit="onNoteSubmit" />
 				</template>
 			</template>
 
 			<ActionButton v-if="share.canDelete"
-				icon="icon-delete"
+				icon="icon-close"
 				:disabled="saving"
 				@click.prevent="onDelete">
 				{{ t('files_sharing', 'Unshare') }}
@@ -111,16 +148,14 @@
 </template>
 
 <script>
-import Avatar from 'nextcloud-vue/dist/Components/Avatar'
-import Actions from 'nextcloud-vue/dist/Components/Actions'
-import ActionButton from 'nextcloud-vue/dist/Components/ActionButton'
-import ActionCheckbox from 'nextcloud-vue/dist/Components/ActionCheckbox'
-import ActionInput from 'nextcloud-vue/dist/Components/ActionInput'
-import ActionTextEditable from 'nextcloud-vue/dist/Components/ActionTextEditable'
-import Tooltip from 'nextcloud-vue/dist/Directives/Tooltip'
+import Avatar from '@nextcloud/vue/dist/Components/Avatar'
+import Actions from '@nextcloud/vue/dist/Components/Actions'
+import ActionButton from '@nextcloud/vue/dist/Components/ActionButton'
+import ActionCheckbox from '@nextcloud/vue/dist/Components/ActionCheckbox'
+import ActionInput from '@nextcloud/vue/dist/Components/ActionInput'
+import ActionTextEditable from '@nextcloud/vue/dist/Components/ActionTextEditable'
+import Tooltip from '@nextcloud/vue/dist/Directives/Tooltip'
 
-// eslint-disable-next-line no-unused-vars
-import Share from '../models/Share'
 import SharesMixin from '../mixins/SharesMixin'
 
 export default {
@@ -132,11 +167,11 @@ export default {
 		ActionCheckbox,
 		ActionInput,
 		ActionTextEditable,
-		Avatar
+		Avatar,
 	},
 
 	directives: {
-		Tooltip
+		Tooltip,
 	},
 
 	mixins: [SharesMixin],
@@ -144,8 +179,10 @@ export default {
 	data() {
 		return {
 			permissionsEdit: OC.PERMISSION_UPDATE,
+			permissionsCreate: OC.PERMISSION_CREATE,
+			permissionsDelete: OC.PERMISSION_DELETE,
 			permissionsRead: OC.PERMISSION_READ,
-			permissionsShare: OC.PERMISSION_SHARE
+			permissionsShare: OC.PERMISSION_SHARE,
 		}
 	},
 
@@ -172,7 +209,7 @@ export default {
 					// todo: strong or italic?
 					// but the t function escape any html from the data :/
 					user: this.share.shareWithDisplayName,
-					owner: this.share.owner
+					owner: this.share.ownerDisplayName,
 				}
 
 				if (this.share.type === this.SHARE_TYPES.SHARE_TYPE_GROUP) {
@@ -187,48 +224,177 @@ export default {
 		},
 
 		canHaveNote() {
-			return this.share.type !== this.SHARE_TYPES.SHARE_TYPE_REMOTE
-				&& this.share.type !== this.SHARE_TYPES.SHARE_TYPE_REMOTE_GROUP
+			return !this.isRemoteShare
+		},
+
+		canHaveExpirationDate() {
+			return !this.isRemoteShare
+		},
+
+		isRemoteShare() {
+			return this.share.type === this.SHARE_TYPES.SHARE_TYPE_REMOTE
+				|| this.share.type === this.SHARE_TYPES.SHARE_TYPE_REMOTE_GROUP
+		},
+
+		/**
+		 * Can the sharer set whether the sharee can edit the file ?
+		 *
+		 * @returns {boolean}
+		 */
+		canSetEdit() {
+			// If the owner revoked the permission after the resharer granted it
+			// the share still has the permission, and the resharer is still
+			// allowed to revoke it too (but not to grant it again).
+			return (this.fileInfo.sharePermissions & OC.PERMISSION_UPDATE) || this.canEdit
+		},
+
+		/**
+		 * Can the sharer set whether the sharee can create the file ?
+		 *
+		 * @returns {boolean}
+		 */
+		canSetCreate() {
+			// If the owner revoked the permission after the resharer granted it
+			// the share still has the permission, and the resharer is still
+			// allowed to revoke it too (but not to grant it again).
+			return (this.fileInfo.sharePermissions & OC.PERMISSION_CREATE) || this.canCreate
+		},
+
+		/**
+		 * Can the sharer set whether the sharee can delete the file ?
+		 *
+		 * @returns {boolean}
+		 */
+		canSetDelete() {
+			// If the owner revoked the permission after the resharer granted it
+			// the share still has the permission, and the resharer is still
+			// allowed to revoke it too (but not to grant it again).
+			return (this.fileInfo.sharePermissions & OC.PERMISSION_DELETE) || this.canDelete
+		},
+
+		/**
+		 * Can the sharer set whether the sharee can reshare the file ?
+		 *
+		 * @returns {boolean}
+		 */
+		canSetReshare() {
+			// If the owner revoked the permission after the resharer granted it
+			// the share still has the permission, and the resharer is still
+			// allowed to revoke it too (but not to grant it again).
+			return (this.fileInfo.sharePermissions & OC.PERMISSION_SHARE) || this.canReshare
 		},
 
 		/**
 		 * Can the sharee edit the shared file ?
 		 */
 		canEdit: {
-			get: function() {
+			get() {
 				return this.share.hasUpdatePermission
 			},
-			set: function(checked) {
-				this.updatePermissions(checked, this.canReshare)
-			}
+			set(checked) {
+				this.updatePermissions({ isEditChecked: checked })
+			},
+		},
+
+		/**
+		 * Can the sharee create the shared file ?
+		 */
+		canCreate: {
+			get() {
+				return this.share.hasCreatePermission
+			},
+			set(checked) {
+				this.updatePermissions({ isCreateChecked: checked })
+			},
+		},
+
+		/**
+		 * Can the sharee delete the shared file ?
+		 */
+		canDelete: {
+			get() {
+				return this.share.hasDeletePermission
+			},
+			set(checked) {
+				this.updatePermissions({ isDeleteChecked: checked })
+			},
 		},
 
 		/**
 		 * Can the sharee reshare the file ?
 		 */
 		canReshare: {
-			get: function() {
+			get() {
 				return this.share.hasSharePermission
 			},
-			set: function(checked) {
-				this.updatePermissions(this.canEdit, checked)
+			set(checked) {
+				this.updatePermissions({ isReshareChecked: checked })
+			},
+		},
+
+		/**
+		 * Is the current share a folder ?
+		 * @returns {boolean}
+		 */
+		isFolder() {
+			return this.fileInfo.type === 'dir'
+		},
+
+		/**
+		 * Does the current share have an expiration date
+		 * @returns {boolean}
+		 */
+		hasExpirationDate: {
+			get() {
+				return this.config.isDefaultInternalExpireDateEnforced || !!this.share.expireDate
+			},
+			set(enabled) {
+				this.share.expireDate = enabled
+					? this.config.defaultInternalExpirationDateString !== ''
+						? this.config.defaultInternalExpirationDateString
+						: moment().format('YYYY-MM-DD')
+					: ''
+			},
+		},
+
+		dateMaxEnforced() {
+			return this.config.isDefaultInternalExpireDateEnforced
+				&& moment().add(1 + this.config.defaultInternalExpireDate, 'days')
+		},
+
+		/**
+		 * @returns {bool}
+		 */
+		hasStatus() {
+			if (this.share.type !== this.SHARE_TYPES.SHARE_TYPE_USER) {
+				return false
 			}
-		}
+
+			return (typeof this.share.status === 'object' && !Array.isArray(this.share.status))
+		},
 
 	},
 
 	methods: {
-		updatePermissions(isEditChecked, isReshareChecked) {
+		updatePermissions({ isEditChecked = this.canEdit, isCreateChecked = this.canCreate, isDeleteChecked = this.canDelete, isReshareChecked = this.canReshare } = {}) {
 			// calc permissions if checked
 			const permissions = this.permissionsRead
+				| (isCreateChecked ? this.permissionsCreate : 0)
+				| (isDeleteChecked ? this.permissionsDelete : 0)
 				| (isEditChecked ? this.permissionsEdit : 0)
 				| (isReshareChecked ? this.permissionsShare : 0)
 
 			this.share.permissions = permissions
 			this.queueUpdate('permissions')
-		}
-	}
+		},
 
+		/**
+		 * Save potential changed data on menu close
+		 */
+		onMenuClose() {
+			this.onNoteSubmit()
+		},
+	},
 }
 </script>
 
@@ -244,6 +410,9 @@ export default {
 		padding: 8px;
 		line-height: 1.2em;
 		p {
+			color: var(--color-text-maxcontrast);
+		}
+		&-unique {
 			color: var(--color-text-maxcontrast);
 		}
 	}

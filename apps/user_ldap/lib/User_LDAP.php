@@ -4,13 +4,14 @@
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author Dominik Schmidt <dev@dominik-schmidt.de>
  * @author felixboehm <felix@webhippie.de>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
- * @author Renaud Fortier <Renaud.Fortier@fsaa.ulaval.ca>
  * @author Robin Appelman <robin@icewind.nl>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roger Szabo <roger.szabo@web.de>
@@ -32,7 +33,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -46,7 +47,6 @@ use OCA\User_LDAP\User\OfflineUser;
 use OCA\User_LDAP\User\User;
 use OCP\IConfig;
 use OCP\ILogger;
-use OCP\IUser;
 use OCP\IUserSession;
 use OCP\Notification\IManager as INotificationManager;
 use OCP\Util;
@@ -57,9 +57,6 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 	/** @var INotificationManager */
 	protected $notificationManager;
-
-	/** @var string */
-	protected $currentUserInDeletionProcess;
 
 	/** @var UserPluginManager */
 	protected $userPluginManager;
@@ -75,20 +72,6 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		$this->ocConfig = $ocConfig;
 		$this->notificationManager = $notificationManager;
 		$this->userPluginManager = $userPluginManager;
-		$this->registerHooks($userSession);
-	}
-
-	protected function registerHooks(IUserSession $userSession) {
-		$userSession->listen('\OC\User', 'preDelete', [$this, 'preDeleteUser']);
-		$userSession->listen('\OC\User', 'postDelete', [$this, 'postDeleteUser']);
-	}
-
-	public function preDeleteUser(IUser $user) {
-		$this->currentUserInDeletionProcess = $user->getUID();
-	}
-
-	public function postDeleteUser() {
-		$this->currentUserInDeletionProcess = null;
 	}
 
 	/**
@@ -103,16 +86,16 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			return $this->userPluginManager->canChangeAvatar($uid);
 		}
 
-		if(!$this->implementsActions(Backend::PROVIDE_AVATAR)) {
+		if (!$this->implementsActions(Backend::PROVIDE_AVATAR)) {
 			return true;
 		}
 
 		$user = $this->access->userManager->get($uid);
-		if(!$user instanceof User) {
+		if (!$user instanceof User) {
 			return false;
 		}
 		$imageData = $user->getAvatarImage();
-		if($imageData === false) {
+		if ($imageData === false) {
 			return true;
 		}
 		return !$user->updateAvatar(true);
@@ -172,7 +155,7 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		//find out dn of the user name
 		$attrs = $this->access->userManager->getAttributes();
 		$users = $this->access->fetchUsersByLoginName($loginName, $attrs);
-		if(count($users) < 1) {
+		if (count($users) < 1) {
 			throw new NotOnLDAP('No user available for the given login name on ' .
 				$this->access->connection->ldapHost . ':' . $this->access->connection->ldapPort);
 		}
@@ -189,23 +172,23 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	public function checkPassword($uid, $password) {
 		try {
 			$ldapRecord = $this->getLDAPUserByLoginName($uid);
-		} catch(NotOnLDAP $e) {
+		} catch (NotOnLDAP $e) {
 			\OC::$server->getLogger()->logException($e, ['app' => 'user_ldap', 'level' => ILogger::DEBUG]);
 			return false;
 		}
 		$dn = $ldapRecord['dn'][0];
 		$user = $this->access->userManager->get($dn);
 
-		if(!$user instanceof User) {
+		if (!$user instanceof User) {
 			Util::writeLog('user_ldap',
 				'LDAP Login: Could not get user object for DN ' . $dn .
 				'. Maybe the LDAP entry has no set display name attribute?',
 				ILogger::WARN);
 			return false;
 		}
-		if($user->getUsername() !== false) {
+		if ($user->getUsername() !== false) {
 			//are the credentials OK?
-			if(!$this->access->areCredentialsValid($dn, $password)) {
+			if (!$this->access->areCredentialsValid($dn, $password)) {
 				return false;
 			}
 
@@ -232,11 +215,11 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 		$user = $this->access->userManager->get($uid);
 
-		if(!$user instanceof User) {
+		if (!$user instanceof User) {
 			throw new \Exception('LDAP setPassword: Could not get user object for uid ' . $uid .
 				'. Maybe the LDAP entry has no set display name attribute?');
 		}
-		if($user->getUsername() !== false && $this->access->setPassword($user->getDN(), $password)) {
+		if ($user->getUsername() !== false && $this->access->setPassword($user->getDN(), $password)) {
 			$ldapDefaultPPolicyDN = $this->access->connection->ldapDefaultPPolicyDN;
 			$turnOnPasswordChange = $this->access->connection->turnOnPasswordChange;
 			if (!empty($ldapDefaultPPolicyDN) && ((int)$turnOnPasswordChange === 1)) {
@@ -268,20 +251,20 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 		//check if users are cached, if so return
 		$ldap_users = $this->access->connection->getFromCache($cachekey);
-		if(!is_null($ldap_users)) {
+		if (!is_null($ldap_users)) {
 			return $ldap_users;
 		}
 
 		// if we'd pass -1 to LDAP search, we'd end up in a Protocol
 		// error. With a limit of 0, we get 0 results. So we pass null.
-		if($limit <= 0) {
+		if ($limit <= 0) {
 			$limit = null;
 		}
-		$filter = $this->access->combineFilterWithAnd(array(
+		$filter = $this->access->combineFilterWithAnd([
 			$this->access->connection->ldapUserFilter,
 			$this->access->connection->ldapUserDisplayName . '=*',
 			$this->access->getFilterPartForUserSearch($search)
-		));
+		]);
 
 		Util::writeLog('user_ldap',
 			'getUsers: Options: search '.$search.' limit '.$limit.' offset '.$offset.' Filter: '.$filter,
@@ -308,39 +291,50 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * @throws \OC\ServerNotAvailableException
 	 */
 	public function userExistsOnLDAP($user) {
-		if(is_string($user)) {
+		if (is_string($user)) {
 			$user = $this->access->userManager->get($user);
 		}
-		if(is_null($user)) {
+		if (is_null($user)) {
 			return false;
+		}
+		$uid = $user instanceof User ? $user->getUsername() : $user->getOCName();
+		$cacheKey = 'userExistsOnLDAP' . $uid;
+		$userExists = $this->access->connection->getFromCache($cacheKey);
+		if (!is_null($userExists)) {
+			return (bool)$userExists;
 		}
 
 		$dn = $user->getDN();
 		//check if user really still exists by reading its entry
-		if(!is_array($this->access->readAttribute($dn, '', $this->access->connection->ldapUserFilter))) {
+		if (!is_array($this->access->readAttribute($dn, '', $this->access->connection->ldapUserFilter))) {
 			try {
 				$uuid = $this->access->getUserMapper()->getUUIDByDN($dn);
 				if (!$uuid) {
+					$this->access->connection->writeToCache($cacheKey, false);
 					return false;
 				}
 				$newDn = $this->access->getUserDnByUuid($uuid);
 				//check if renamed user is still valid by reapplying the ldap filter
 				if ($newDn === $dn || !is_array($this->access->readAttribute($newDn, '', $this->access->connection->ldapUserFilter))) {
+					$this->access->connection->writeToCache($cacheKey, false);
 					return false;
 				}
 				$this->access->getUserMapper()->setDNbyUUID($newDn, $uuid);
+				$this->access->connection->writeToCache($cacheKey, true);
 				return true;
 			} catch (ServerNotAvailableException $e) {
 				throw $e;
 			} catch (\Exception $e) {
+				$this->access->connection->writeToCache($cacheKey, false);
 				return false;
 			}
 		}
 
-		if($user instanceof OfflineUser) {
+		if ($user instanceof OfflineUser) {
 			$user->unmark();
 		}
 
+		$this->access->connection->writeToCache($cacheKey, true);
 		return true;
 	}
 
@@ -352,44 +346,39 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 */
 	public function userExists($uid) {
 		$userExists = $this->access->connection->getFromCache('userExists'.$uid);
-		if(!is_null($userExists)) {
+		if (!is_null($userExists)) {
 			return (bool)$userExists;
 		}
 		//getting dn, if false the user does not exist. If dn, he may be mapped only, requires more checking.
 		$user = $this->access->userManager->get($uid);
 
-		if(is_null($user)) {
+		if (is_null($user)) {
 			Util::writeLog('user_ldap', 'No DN found for '.$uid.' on '.
 				$this->access->connection->ldapHost, ILogger::DEBUG);
 			$this->access->connection->writeToCache('userExists'.$uid, false);
 			return false;
-		} else if($user instanceof OfflineUser) {
-			//express check for users marked as deleted. Returning true is
-			//necessary for cleanup
-			return true;
 		}
 
-		$result = $this->userExistsOnLDAP($user);
-		$this->access->connection->writeToCache('userExists'.$uid, $result);
-		return $result;
+		$this->access->connection->writeToCache('userExists'.$uid, true);
+		return true;
 	}
 
 	/**
-	* returns whether a user was deleted in LDAP
-	*
-	* @param string $uid The username of the user to delete
-	* @return bool
-	*/
+	 * returns whether a user was deleted in LDAP
+	 *
+	 * @param string $uid The username of the user to delete
+	 * @return bool
+	 */
 	public function deleteUser($uid) {
 		if ($this->userPluginManager->canDeleteUser()) {
 			$status = $this->userPluginManager->deleteUser($uid);
-			if($status === false) {
+			if ($status === false) {
 				return false;
 			}
 		}
 
 		$marked = $this->ocConfig->getUserValue($uid, 'user_ldap', 'isDeleted', 0);
-		if((int)$marked === 0) {
+		if ((int)$marked === 0) {
 			\OC::$server->getLogger()->notice(
 				'User '.$uid . ' is not marked as deleted, not cleaning up.',
 				['app' => 'user_ldap']);
@@ -400,6 +389,7 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 		$this->access->getUserMapper()->unmap($uid); // we don't emit unassign signals here, since it is implicit to delete signals fired from core
 		$this->access->userManager->invalidate($uid);
+		$this->access->connection->clearCache();
 		return true;
 	}
 
@@ -413,7 +403,7 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 */
 	public function getHome($uid) {
 		// user Exists check required as it is not done in user proxy!
-		if(!$this->userExists($uid)) {
+		if (!$this->userExists($uid)) {
 			return false;
 		}
 
@@ -423,27 +413,19 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 		$cacheKey = 'getHome'.$uid;
 		$path = $this->access->connection->getFromCache($cacheKey);
-		if(!is_null($path)) {
+		if (!is_null($path)) {
 			return $path;
 		}
 
 		// early return path if it is a deleted user
 		$user = $this->access->userManager->get($uid);
-		if($user instanceof OfflineUser) {
-			if($this->currentUserInDeletionProcess !== null
-				&& $this->currentUserInDeletionProcess === $user->getOCName()
-			) {
-				return $user->getHomePath();
-			} else {
-				throw new NoUserException($uid . ' is not a valid user anymore');
-			}
-		} else if ($user === null) {
+		if ($user instanceof User || $user instanceof OfflineUser) {
+			$path = $user->getHomePath() ?: false;
+		} else {
 			throw new NoUserException($uid . ' is not a valid user anymore');
 		}
 
-		$path = $user->getHomePath();
 		$this->access->cacheUserHome($uid, $path);
-
 		return $path;
 	}
 
@@ -457,12 +439,12 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			return $this->userPluginManager->getDisplayName($uid);
 		}
 
-		if(!$this->userExists($uid)) {
+		if (!$this->userExists($uid)) {
 			return false;
 		}
 
 		$cacheKey = 'getDisplayName'.$uid;
-		if(!is_null($displayName = $this->access->connection->getFromCache($cacheKey))) {
+		if (!is_null($displayName = $this->access->connection->getFromCache($cacheKey))) {
 			return $displayName;
 		}
 
@@ -479,10 +461,10 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			$this->access->username2dn($uid),
 			$this->access->connection->ldapUserDisplayName);
 
-		if($displayName && (count($displayName) > 0)) {
+		if ($displayName && (count($displayName) > 0)) {
 			$displayName = $displayName[0];
 
-			if (is_array($displayName2)){
+			if (is_array($displayName2)) {
 				$displayName2 = count($displayName2) > 0 ? $displayName2[0] : '';
 			}
 
@@ -526,11 +508,11 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 */
 	public function getDisplayNames($search = '', $limit = null, $offset = null) {
 		$cacheKey = 'getDisplayNames-'.$search.'-'.$limit.'-'.$offset;
-		if(!is_null($displayNames = $this->access->connection->getFromCache($cacheKey))) {
+		if (!is_null($displayNames = $this->access->connection->getFromCache($cacheKey))) {
 			return $displayNames;
 		}
 
-		$displayNames = array();
+		$displayNames = [];
 		$users = $this->getUsers($search, $limit, $offset);
 		foreach ($users as $user) {
 			$displayNames[$user] = $this->getDisplayName($user);
@@ -540,13 +522,13 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	}
 
 	/**
-	* Check if backend implements actions
-	* @param int $actions bitwise-or'ed actions
-	* @return boolean
-	*
-	* Returns the supported actions as int to be
-	* compared with \OC\User\Backend::CREATE_USER etc.
-	*/
+	 * Check if backend implements actions
+	 * @param int $actions bitwise-or'ed actions
+	 * @return boolean
+	 *
+	 * Returns the supported actions as int to be
+	 * compared with \OC\User\Backend::CREATE_USER etc.
+	 */
 	public function implementsActions($actions) {
 		return (bool)((Backend::CHECK_PASSWORD
 			| Backend::GET_HOME
@@ -577,7 +559,7 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 		$filter = $this->access->getFilterForUserCount();
 		$cacheKey = 'countUsers-'.$filter;
-		if(!is_null($entries = $this->access->connection->getFromCache($cacheKey))) {
+		if (!is_null($entries = $this->access->connection->getFromCache($cacheKey))) {
 			return $entries;
 		}
 		$entries = $this->access->countUsers($filter);
@@ -589,7 +571,7 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * Backend name to be shown in user management
 	 * @return string the name of the backend to be shown
 	 */
-	public function getBackendName(){
+	public function getBackendName() {
 		return 'LDAP';
 	}
 	
@@ -627,7 +609,7 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 				if (is_string($dn)) {
 					// the NC user creation work flow requires a know user id up front
 					$uuid = $this->access->getUUID($dn, true);
-					if(is_string($uuid)) {
+					if (is_string($uuid)) {
 						$this->access->mapAndAnnounceIfApplicable(
 							$this->access->getUserMapper(),
 							$dn,
@@ -653,5 +635,4 @@ class User_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		}
 		return false;
 	}
-
 }

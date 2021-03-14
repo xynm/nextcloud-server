@@ -3,6 +3,8 @@
  * @copyright Copyright (c) 2017 Arthur Schiwon <blizzz@arthur-schiwon.de>
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <robin@icewind.nl>
  *
  * @license GNU AGPL version 3 or any later version
@@ -18,7 +20,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,11 +62,10 @@ class PersonalSettingsController extends Controller {
 	 *
 	 * @NoCSRFRequired
 	 * @NoAdminRequired
-	 * @NoSubadminRequired
+	 * @NoSubAdminRequired
 	 */
 	public function index($section) {
 		return $this->getIndexResponse('personal', $section);
-
 	}
 
 	/**
@@ -74,7 +75,7 @@ class PersonalSettingsController extends Controller {
 	protected function getSettings($section) {
 		$settings = $this->settingsManager->getPersonalSettings($section);
 		$formatted = $this->formatSettings($settings);
-		if($section === 'additional') {
+		if ($section === 'additional') {
 			$formatted['content'] .= $this->getLegacyForms();
 		}
 		return $formatted;
@@ -93,15 +94,15 @@ class PersonalSettingsController extends Controller {
 				$anchor = strtolower($sectionName);
 				$anchor = str_replace(' ', '-', $anchor);
 
-				return array(
+				return [
 					'anchor' => $anchor,
 					'section-name' => $sectionName,
 					'form' => $form
-				);
+				];
 			}
-			return array(
+			return [
 				'form' => $form
-			);
+			];
 		}, $forms);
 
 		$out = new Template('settings', 'settings/additional');

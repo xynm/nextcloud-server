@@ -34,24 +34,24 @@ use phpseclib\File\X509;
 use Test\TestCase;
 
 class CheckerTest extends TestCase {
-	/** @var EnvironmentHelper|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var EnvironmentHelper|\PHPUnit\Framework\MockObject\MockObject */
 	private $environmentHelper;
-	/** @var AppLocator|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var AppLocator|\PHPUnit\Framework\MockObject\MockObject */
 	private $appLocator;
 	/** @var Checker */
 	private $checker;
-	/** @var FileAccessHelper|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var FileAccessHelper|\PHPUnit\Framework\MockObject\MockObject */
 	private $fileAccessHelper;
-	/** @var IConfig|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IConfig|\PHPUnit\Framework\MockObject\MockObject */
 	private $config;
-	/** @var ICacheFactory|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var ICacheFactory|\PHPUnit\Framework\MockObject\MockObject */
 	private $cacheFactory;
-	/** @var IAppManager|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var IAppManager|\PHPUnit\Framework\MockObject\MockObject */
 	private $appManager;
-	/** @var \OC\Files\Type\Detection|\PHPUnit_Framework_MockObject_MockObject */
+	/** @var \OC\Files\Type\Detection|\PHPUnit\Framework\MockObject\MockObject */
 	private $mimeTypeDetector;
 
-	public function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 		$this->environmentHelper = $this->createMock(EnvironmentHelper::class);
 		$this->fileAccessHelper = $this->createMock(FileAccessHelper::class);
@@ -62,13 +62,13 @@ class CheckerTest extends TestCase {
 		$this->mimeTypeDetector = $this->createMock(\OC\Files\Type\Detection::class);
 
 		$this->config->method('getAppValue')
-			->will($this->returnArgument(2));
+			->willReturnArgument(2);
 
 		$this->cacheFactory
 			->expects($this->any())
 			->method('createDistributed')
 			->with('oc.integritycheck.checker')
-			->will($this->returnValue(new NullCache()));
+			->willReturn(new NullCache());
 
 		$this->checker = new Checker(
 			$this->environmentHelper,
@@ -77,16 +77,15 @@ class CheckerTest extends TestCase {
 			$this->config,
 			$this->cacheFactory,
 			$this->appManager,
-			\OC::$server->getTempManager(),
 			$this->mimeTypeDetector
 		);
 	}
 
-	/**
-	 * @expectedException \Exception
-	 * @expectedExceptionMessage Exception message
-	 */
+
 	public function testWriteAppSignatureOfNotExistingApp() {
+		$this->expectException(\Exception::class);
+		$this->expectExceptionMessage('Exception message');
+
 		$this->fileAccessHelper
 			->expects($this->at(0))
 			->method('assertDirectoryExists')
@@ -107,11 +106,11 @@ class CheckerTest extends TestCase {
 		$this->checker->writeAppSignature('NotExistingApp', $x509, $rsa);
 	}
 
-	/**
-	 * @expectedException \Exception
-	 * @expectedExceptionMessageRegExp /[a-zA-Z\/_-]+ is not writable/
-	 */
+
 	public function testWriteAppSignatureWrongPermissions() {
+		$this->expectException(\Exception::class);
+		$this->expectExceptionMessageMatches('/[a-zA-Z\\/_-]+ is not writable/');
+
 		$this->fileAccessHelper
 			->expects($this->once())
 			->method('file_put_contents')
@@ -140,7 +139,7 @@ class CheckerTest extends TestCase {
 			->method('file_put_contents')
 			->with(
 					$this->equalTo(\OC::$SERVERROOT . '/tests/data/integritycheck/app//appinfo/signature.json'),
-					$this->callback(function($signature) use ($expectedSignatureFileData) {
+					$this->callback(function ($signature) use ($expectedSignatureFileData) {
 						$expectedArray = json_decode($expectedSignatureFileData, true);
 						$actualArray = json_decode($signature, true);
 						$this->assertEquals($expectedArray, $actualArray);
@@ -161,17 +160,17 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$expected = [
 			'EXCEPTION' => [
-					'class' => 'OC\IntegrityCheck\Exceptions\InvalidSignatureException',
-					'message' => 'Signature data not found.',
+				'class' => 'OC\IntegrityCheck\Exceptions\InvalidSignatureException',
+				'message' => 'Signature data not found.',
 			],
 		];
 		$this->assertSame($expected, $this->checker->verifyAppSignature('SomeApp'));
@@ -181,18 +180,18 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->appLocator
 				->expects($this->once())
 				->method('getAppPath')
 				->with('SomeApp')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/app/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -207,14 +206,14 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//appinfo/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$this->assertSame([], $this->checker->verifyAppSignature('SomeApp'));
 	}
@@ -223,18 +222,18 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->appLocator
 				->expects($this->once())
 				->method('getAppPath')
 				->with('SomeApp')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/app/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "tampered",
@@ -249,20 +248,20 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//appinfo/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$expected = [
-				'EXCEPTION' => [
-						'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
-						'message' => 'Signature could not get verified.',
-				],
+			'EXCEPTION' => [
+				'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
+				'message' => 'Signature could not get verified.',
+			],
 		];
 		$this->assertEquals($expected, $this->checker->verifyAppSignature('SomeApp'));
 	}
@@ -271,18 +270,18 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->appLocator
 				->expects($this->once())
 				->method('getAppPath')
 				->with('SomeApp')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -297,33 +296,33 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//appinfo/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 
 		$expected = [
 			'INVALID_HASH' => [
 				'AnotherFile.txt' => [
-						'expected' => '1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112',
-						'current' => '7322348ba269c6d5522efe02f424fa3a0da319a7cd9c33142a5afe32a2d9af2da3a411f086fcfc96ff4301ea566f481dba0960c2abeef3594c4d930462f6584c',
+					'expected' => '1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112',
+					'current' => '7322348ba269c6d5522efe02f424fa3a0da319a7cd9c33142a5afe32a2d9af2da3a411f086fcfc96ff4301ea566f481dba0960c2abeef3594c4d930462f6584c',
 				],
 			],
 			'FILE_MISSING' => [
 				'subfolder/file.txt' => [
-						'expected' => '410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b',
-						'current' => '',
+					'expected' => '410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b',
+					'current' => '',
 				],
 			],
 			'EXTRA_FILE' => [
 				'UnecessaryFile' => [
-						'expected' => '',
-						'current' => 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
+					'expected' => '',
+					'current' => 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
 				],
 			],
 
@@ -335,12 +334,12 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->appLocator
 				->expects($this->never())
@@ -360,35 +359,35 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//appinfo/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 
 		$expected = [
-				'INVALID_HASH' => [
-						'AnotherFile.txt' => [
-								'expected' => '1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112',
-								'current' => '7322348ba269c6d5522efe02f424fa3a0da319a7cd9c33142a5afe32a2d9af2da3a411f086fcfc96ff4301ea566f481dba0960c2abeef3594c4d930462f6584c',
-						],
+			'INVALID_HASH' => [
+				'AnotherFile.txt' => [
+					'expected' => '1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112',
+					'current' => '7322348ba269c6d5522efe02f424fa3a0da319a7cd9c33142a5afe32a2d9af2da3a411f086fcfc96ff4301ea566f481dba0960c2abeef3594c4d930462f6584c',
 				],
-				'FILE_MISSING' => [
-						'subfolder/file.txt' => [
-								'expected' => '410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b',
-								'current' => '',
-						],
+			],
+			'FILE_MISSING' => [
+				'subfolder/file.txt' => [
+					'expected' => '410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b',
+					'current' => '',
 				],
-				'EXTRA_FILE' => [
-						'UnecessaryFile' => [
-								'expected' => '',
-								'current' => 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
-						],
+			],
+			'EXTRA_FILE' => [
+				'UnecessaryFile' => [
+					'expected' => '',
+					'current' => 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
 				],
+			],
 
 		];
 		$this->assertSame($expected, $this->checker->verifyAppSignature('SomeApp', \OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/'));
@@ -398,18 +397,18 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->appLocator
 				->expects($this->once())
 				->method('getAppPath')
 				->with('SomeApp')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -422,20 +421,20 @@ class CheckerTest extends TestCase {
 				->expects($this->at(0))
 				->method('file_get_contents')
 				->with(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//appinfo/signature.json')
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$expected = [
-				'EXCEPTION' => [
-						'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
-						'message' => 'Certificate is not valid for required scope. (Requested: SomeApp, current: CN=AnotherScope)',
-					],
+			'EXCEPTION' => [
+				'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
+				'message' => 'Certificate is not valid for required scope. (Requested: SomeApp, current: CN=AnotherScope)',
+			],
 		];
 		$this->assertSame($expected, $this->checker->verifyAppSignature('SomeApp'));
 	}
@@ -444,18 +443,18 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->appLocator
 				->expects($this->once())
 				->method('getAppPath')
 				->with('SomeApp')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/app/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -468,23 +467,23 @@ class CheckerTest extends TestCase {
 				->expects($this->at(0))
 				->method('file_get_contents')
 				->with(\OC::$SERVERROOT . '/tests/data/integritycheck/app//appinfo/signature.json')
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 					'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$this->assertSame([], $this->checker->verifyAppSignature('SomeApp'));
 	}
 
-	/**
-	 * @expectedException \Exception
-	 * @expectedExceptionMessage Exception message
-	 */
+
 	public function testWriteCoreSignatureWithException() {
+		$this->expectException(\Exception::class);
+		$this->expectExceptionMessage('Exception message');
+
 		$this->fileAccessHelper
 			->expects($this->at(0))
 			->method('assertDirectoryExists')
@@ -504,11 +503,11 @@ class CheckerTest extends TestCase {
 		$this->checker->writeCoreSignature($x509, $rsa, __DIR__);
 	}
 
-	/**
-	 * @expectedException \Exception
-	 * @expectedExceptionMessageRegExp /[a-zA-Z\/_-]+ is not writable/
-	 */
+
 	public function testWriteCoreSignatureWrongPermissions() {
+		$this->expectException(\Exception::class);
+		$this->expectExceptionMessageMatches('/[a-zA-Z\\/_-]+ is not writable/');
+
 		$this->fileAccessHelper
 			->expects($this->at(0))
 			->method('assertDirectoryExists')
@@ -540,17 +539,17 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/app/');
 		$this->fileAccessHelper
 				->expects($this->once())
 				->method('file_put_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//core/signature.json',
-						$this->callback(function($signature) use ($expectedSignatureFileData) {
-						$expectedArray = json_decode($expectedSignatureFileData, true);
-						$actualArray = json_decode($signature, true);
-						$this->assertEquals($expectedArray, $actualArray);
-						return true;
+						$this->callback(function ($signature) use ($expectedSignatureFileData) {
+							$expectedArray = json_decode($expectedSignatureFileData, true);
+							$actualArray = json_decode($signature, true);
+							$this->assertEquals($expectedArray, $actualArray);
+							return true;
 						})
 				);
 
@@ -575,13 +574,13 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessUnmodified/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessUnmodified/');
 		$this->fileAccessHelper
 				->expects($this->once())
 				->method('file_put_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessUnmodified//core/signature.json',
-					$this->callback(function($signature) use ($expectedSignatureFileData) {
+					$this->callback(function ($signature) use ($expectedSignatureFileData) {
 						$expectedArray = json_decode($expectedSignatureFileData, true);
 						$actualArray = json_decode($signature, true);
 						$this->assertEquals($expectedArray, $actualArray);
@@ -611,7 +610,7 @@ class CheckerTest extends TestCase {
 				->method('file_put_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithInvalidModifiedContent//core/signature.json',
-					$this->callback(function($signature) use ($expectedSignatureFileData) {
+					$this->callback(function ($signature) use ($expectedSignatureFileData) {
 						$expectedArray = json_decode($expectedSignatureFileData, true);
 						$actualArray = json_decode($signature, true);
 						$this->assertEquals($expectedArray, $actualArray);
@@ -640,13 +639,13 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent');
 		$this->fileAccessHelper
 				->expects($this->once())
 				->method('file_put_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent/core/signature.json',
-					$this->callback(function($signature) use ($expectedSignatureFileData) {
+					$this->callback(function ($signature) use ($expectedSignatureFileData) {
 						$expectedArray = json_decode($expectedSignatureFileData, true);
 						$actualArray = json_decode($signature, true);
 						$this->assertEquals($expectedArray, $actualArray);
@@ -667,12 +666,12 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$expected = [
 			'EXCEPTION' => [
@@ -687,17 +686,17 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/app/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -712,14 +711,14 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//core/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$this->assertSame([], $this->checker->verifyCoreSignature());
 	}
@@ -728,17 +727,17 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 			->expects($this->once())
 			->method('getChannel')
-			->will($this->returnValue('stable'));
+			->willReturn('stable');
 		$this->config
 			->expects($this->any())
 			->method('getSystemValue')
 			->with('integrity.check.disabled', false)
-			->will($this->returnValue(false));
+			->willReturn(false);
 
 		$this->environmentHelper
 			->expects($this->any())
 			->method('getServerRoot')
-			->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent'));
+			->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent');
 		$signatureDataFile = '{
     "hashes": {
         ".htaccess": "7e6a7a4d8ee4f3fbc45dd579407c643471575a9d127d1c75f6d0a49e80766c3c587104b2139ef76d2a4bffce3f45777900605aaa49519c9532909b71e5030227",
@@ -753,14 +752,14 @@ class CheckerTest extends TestCase {
 			->with(
 				\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent/core/signature.json'
 			)
-			->will($this->returnValue($signatureDataFile));
+			->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 			->expects($this->at(1))
 			->method('file_get_contents')
 			->with(
 				\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent/resources/codesigning/root.crt'
 			)
-			->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+			->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$this->assertSame([], $this->checker->verifyCoreSignature());
 	}
@@ -769,237 +768,243 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 			->expects($this->once())
 			->method('getChannel')
-			->will($this->returnValue('stable'));
+			->willReturn('stable');
 		$this->config
 			->expects($this->any())
 			->method('getSystemValue')
 			->with('integrity.check.disabled', false)
-			->will($this->returnValue(false));
+			->willReturn(false);
 
 		$this->mimeTypeDetector
 			->expects($this->once())
 			->method('getOnlyDefaultAliases')
 			->willReturn(
-				array (
-					'_comment' => 'Array of mimetype aliases.',
-					'_comment2' => 'Any changes you make here will be overwritten on an update of Nextcloud.',
-					'_comment3' => 'Put any custom mappings in a new file mimetypealiases.json in the config/ folder of Nextcloud',
-					'_comment4' => 'After any change to mimetypealiases.json run:',
-					'_comment5' => './occ maintenance:mimetype:update-js',
-					'_comment6' => 'Otherwise your update won\'t propagate through the system.',
-					'application/coreldraw' => 'image',
-					'application/epub+zip' => 'text',
-					'application/font-sfnt' => 'image',
-					'application/font-woff' => 'image',
-					'application/gpx+xml' => 'location',
-					'application/illustrator' => 'image',
-					'application/javascript' => 'text/code',
-					'application/json' => 'text/code',
-					'application/msaccess' => 'file',
-					'application/msexcel' => 'x-office/spreadsheet',
-					'application/msonenote' => 'x-office/document',
-					'application/mspowerpoint' => 'x-office/presentation',
-					'application/msword' => 'x-office/document',
-					'application/octet-stream' => 'file',
-					'application/postscript' => 'image',
-					'application/rss+xml' => 'application/xml',
-					'application/vnd.android.package-archive' => 'package/x-generic',
-					'application/vnd.lotus-wordpro' => 'x-office/document',
-					'application/vnd.garmin.tcx+xml' => 'location',
-					'application/vnd.google-earth.kml+xml' => 'location',
-					'application/vnd.google-earth.kmz' => 'location',
-					'application/vnd.ms-excel' => 'x-office/spreadsheet',
-					'application/vnd.ms-excel.addin.macroEnabled.12' => 'x-office/spreadsheet',
-					'application/vnd.ms-excel.sheet.binary.macroEnabled.12' => 'x-office/spreadsheet',
-					'application/vnd.ms-excel.sheet.macroEnabled.12' => 'x-office/spreadsheet',
-					'application/vnd.ms-excel.template.macroEnabled.12' => 'x-office/spreadsheet',
-					'application/vnd.ms-fontobject' => 'image',
-					'application/vnd.ms-powerpoint' => 'x-office/presentation',
-					'application/vnd.ms-powerpoint.addin.macroEnabled.12' => 'x-office/presentation',
-					'application/vnd.ms-powerpoint.presentation.macroEnabled.12' => 'x-office/presentation',
-					'application/vnd.ms-powerpoint.slideshow.macroEnabled.12' => 'x-office/presentation',
-					'application/vnd.ms-powerpoint.template.macroEnabled.12' => 'x-office/presentation',
-					'application/vnd.ms-visio.drawing.macroEnabled.12' => 'application/vnd.visio',
-					'application/vnd.ms-visio.drawing' => 'application/vnd.visio',
-					'application/vnd.ms-visio.stencil.macroEnabled.12' => 'application/vnd.visio',
-					'application/vnd.ms-visio.stencil' => 'application/vnd.visio',
-					'application/vnd.ms-visio.template.macroEnabled.12' => 'application/vnd.visio',
-					'application/vnd.ms-visio.template' => 'application/vnd.visio',
-					'application/vnd.ms-word.document.macroEnabled.12' => 'x-office/document',
-					'application/vnd.ms-word.template.macroEnabled.12' => 'x-office/document',
-					'application/vnd.oasis.opendocument.presentation' => 'x-office/presentation',
-					'application/vnd.oasis.opendocument.presentation-template' => 'x-office/presentation',
-					'application/vnd.oasis.opendocument.spreadsheet' => 'x-office/spreadsheet',
-					'application/vnd.oasis.opendocument.spreadsheet-template' => 'x-office/spreadsheet',
-					'application/vnd.oasis.opendocument.text' => 'x-office/document',
-					'application/vnd.oasis.opendocument.text-master' => 'x-office/document',
-					'application/vnd.oasis.opendocument.text-template' => 'x-office/document',
-					'application/vnd.oasis.opendocument.text-web' => 'x-office/document',
-					'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'x-office/presentation',
-					'application/vnd.openxmlformats-officedocument.presentationml.slideshow' => 'x-office/presentation',
-					'application/vnd.openxmlformats-officedocument.presentationml.template' => 'x-office/presentation',
-					'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'x-office/spreadsheet',
-					'application/vnd.openxmlformats-officedocument.spreadsheetml.template' => 'x-office/spreadsheet',
-					'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'x-office/document',
-					'application/vnd.openxmlformats-officedocument.wordprocessingml.template' => 'x-office/document',
-					'application/vnd.visio' => 'x-office/document',
-					'application/vnd.wordperfect' => 'x-office/document',
-					'application/x-7z-compressed' => 'package/x-generic',
-					'application/x-bzip2' => 'package/x-generic',
-					'application/x-cbr' => 'text',
-					'application/x-compressed' => 'package/x-generic',
-					'application/x-dcraw' => 'image',
-					'application/x-deb' => 'package/x-generic',
-					'application/x-fictionbook+xml' => 'text',
-					'application/x-font' => 'image',
-					'application/x-gimp' => 'image',
-					'application/x-gzip' => 'package/x-generic',
-					'application/x-iwork-keynote-sffkey' => 'x-office/presentation',
-					'application/x-iwork-numbers-sffnumbers' => 'x-office/spreadsheet',
-					'application/x-iwork-pages-sffpages' => 'x-office/document',
-					'application/x-mobipocket-ebook' => 'text',
-					'application/x-perl' => 'text/code',
-					'application/x-photoshop' => 'image',
-					'application/x-php' => 'text/code',
-					'application/x-rar-compressed' => 'package/x-generic',
-					'application/x-tar' => 'package/x-generic',
-					'application/x-tex' => 'text',
-					'application/xml' => 'text/html',
-					'application/yaml' => 'text/code',
-					'application/zip' => 'package/x-generic',
-					'database' => 'file',
-					'httpd/unix-directory' => 'dir',
-					'text/css' => 'text/code',
-					'text/csv' => 'x-office/spreadsheet',
-					'text/html' => 'text/code',
-					'text/x-c' => 'text/code',
-					'text/x-c++src' => 'text/code',
-					'text/x-h' => 'text/code',
-					'text/x-java-source' => 'text/code',
-					'text/x-ldif' => 'text/code',
-					'text/x-python' => 'text/code',
-					'text/x-shellscript' => 'text/code',
-					'web' => 'text/code',
-					'application/internet-shortcut' => 'link',
-				));
+				 [
+				 	'_comment' => 'Array of mimetype aliases.',
+				 	'_comment2' => 'Any changes you make here will be overwritten on an update of Nextcloud.',
+				 	'_comment3' => 'Put any custom mappings in a new file mimetypealiases.json in the config/ folder of Nextcloud',
+				 	'_comment4' => 'After any change to mimetypealiases.json run:',
+				 	'_comment5' => './occ maintenance:mimetype:update-js',
+				 	'_comment6' => 'Otherwise your update won\'t propagate through the system.',
+				 	'application/coreldraw' => 'image',
+				 	'application/epub+zip' => 'text',
+				 	'application/font-sfnt' => 'image',
+				 	'application/font-woff' => 'image',
+				 	'application/gpx+xml' => 'location',
+				 	'application/illustrator' => 'image',
+				 	'application/javascript' => 'text/code',
+				 	'application/json' => 'text/code',
+				 	'application/msaccess' => 'file',
+				 	'application/msexcel' => 'x-office/spreadsheet',
+				 	'application/msonenote' => 'x-office/document',
+				 	'application/mspowerpoint' => 'x-office/presentation',
+				 	'application/msword' => 'x-office/document',
+				 	'application/octet-stream' => 'file',
+				 	'application/postscript' => 'image',
+				 	'application/rss+xml' => 'application/xml',
+				 	'application/vnd.android.package-archive' => 'package/x-generic',
+				 	'application/vnd.lotus-wordpro' => 'x-office/document',
+				 	'application/vnd.garmin.tcx+xml' => 'location',
+				 	'application/vnd.google-earth.kml+xml' => 'location',
+				 	'application/vnd.google-earth.kmz' => 'location',
+				 	'application/vnd.ms-excel' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-excel.addin.macroEnabled.12' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-excel.sheet.binary.macroEnabled.12' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-excel.sheet.macroEnabled.12' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-excel.template.macroEnabled.12' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-fontobject' => 'image',
+				 	'application/vnd.ms-powerpoint' => 'x-office/presentation',
+				 	'application/vnd.ms-powerpoint.addin.macroEnabled.12' => 'x-office/presentation',
+				 	'application/vnd.ms-powerpoint.presentation.macroEnabled.12' => 'x-office/presentation',
+				 	'application/vnd.ms-powerpoint.slideshow.macroEnabled.12' => 'x-office/presentation',
+				 	'application/vnd.ms-powerpoint.template.macroEnabled.12' => 'x-office/presentation',
+				 	'application/vnd.ms-visio.drawing.macroEnabled.12' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.drawing' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.stencil.macroEnabled.12' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.stencil' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.template.macroEnabled.12' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.template' => 'application/vnd.visio',
+				 	'application/vnd.ms-word.document.macroEnabled.12' => 'x-office/document',
+				 	'application/vnd.ms-word.template.macroEnabled.12' => 'x-office/document',
+				 	'application/vnd.oasis.opendocument.presentation' => 'x-office/presentation',
+				 	'application/vnd.oasis.opendocument.presentation-template' => 'x-office/presentation',
+				 	'application/vnd.oasis.opendocument.spreadsheet' => 'x-office/spreadsheet',
+				 	'application/vnd.oasis.opendocument.spreadsheet-template' => 'x-office/spreadsheet',
+				 	'application/vnd.oasis.opendocument.text' => 'x-office/document',
+				 	'application/vnd.oasis.opendocument.text-master' => 'x-office/document',
+				 	'application/vnd.oasis.opendocument.text-template' => 'x-office/document',
+				 	'application/vnd.oasis.opendocument.text-web' => 'x-office/document',
+				 	'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'x-office/presentation',
+				 	'application/vnd.openxmlformats-officedocument.presentationml.slideshow' => 'x-office/presentation',
+				 	'application/vnd.openxmlformats-officedocument.presentationml.template' => 'x-office/presentation',
+				 	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'x-office/spreadsheet',
+				 	'application/vnd.openxmlformats-officedocument.spreadsheetml.template' => 'x-office/spreadsheet',
+				 	'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'x-office/document',
+				 	'application/vnd.openxmlformats-officedocument.wordprocessingml.template' => 'x-office/document',
+				 	'application/vnd.visio' => 'x-office/document',
+				 	'application/vnd.wordperfect' => 'x-office/document',
+				 	'application/x-7z-compressed' => 'package/x-generic',
+				 	'application/x-bzip2' => 'package/x-generic',
+				 	'application/x-cbr' => 'text',
+				 	'application/x-compressed' => 'package/x-generic',
+				 	'application/x-dcraw' => 'image',
+				 	'application/x-deb' => 'package/x-generic',
+				 	'application/x-fictionbook+xml' => 'text',
+				 	'application/x-font' => 'image',
+				 	'application/x-gimp' => 'image',
+				 	'application/x-gzip' => 'package/x-generic',
+				 	'application/x-iwork-keynote-sffkey' => 'x-office/presentation',
+				 	'application/x-iwork-numbers-sffnumbers' => 'x-office/spreadsheet',
+				 	'application/x-iwork-pages-sffpages' => 'x-office/document',
+				 	'application/x-mobipocket-ebook' => 'text',
+				 	'application/x-perl' => 'text/code',
+				 	'application/x-photoshop' => 'image',
+				 	'application/x-php' => 'text/code',
+				 	'application/x-rar-compressed' => 'package/x-generic',
+				 	'application/x-tar' => 'package/x-generic',
+				 	'application/x-tex' => 'text',
+				 	'application/xml' => 'text/html',
+				 	'application/yaml' => 'text/code',
+				 	'application/zip' => 'package/x-generic',
+				 	'database' => 'file',
+				 	'httpd/unix-directory' => 'dir',
+				 	'text/css' => 'text/code',
+				 	'text/csv' => 'x-office/spreadsheet',
+				 	'text/html' => 'text/code',
+				 	'text/x-c' => 'text/code',
+				 	'text/x-c++src' => 'text/code',
+				 	'text/x-h' => 'text/code',
+				 	'text/x-java-source' => 'text/code',
+				 	'text/x-ldif' => 'text/code',
+				 	'text/x-python' => 'text/code',
+				 	'text/x-shellscript' => 'text/code',
+				 	'web' => 'text/code',
+				 	'application/internet-shortcut' => 'link',
+				 	'application/km' => 'mindmap',
+				 	'application/x-freemind' => 'mindmap',
+				 	'application/vnd.xmind.workbook' => 'mindmap'
+				 ]);
 
 		$this->mimeTypeDetector
 			->expects($this->once())
 			->method('getAllAliases')
 			->willReturn(
-				array (
-					'_comment' => 'Array of mimetype aliases.',
-					'_comment2' => 'Any changes you make here will be overwritten on an update of Nextcloud.',
-					'_comment3' => 'Put any custom mappings in a new file mimetypealiases.json in the config/ folder of Nextcloud',
-					'_comment4' => 'After any change to mimetypealiases.json run:',
-					'_comment5' => './occ maintenance:mimetype:update-js',
-					'_comment6' => 'Otherwise your update won\'t propagate through the system.',
-					'application/coreldraw' => 'image',
-					'application/test' => 'image',
-					'application/epub+zip' => 'text',
-					'application/font-sfnt' => 'image',
-					'application/font-woff' => 'image',
-					'application/gpx+xml' => 'location',
-					'application/illustrator' => 'image',
-					'application/javascript' => 'text/code',
-					'application/json' => 'text/code',
-					'application/msaccess' => 'file',
-					'application/msexcel' => 'x-office/spreadsheet',
-					'application/msonenote' => 'x-office/document',
-					'application/mspowerpoint' => 'x-office/presentation',
-					'application/msword' => 'x-office/document',
-					'application/octet-stream' => 'file',
-					'application/postscript' => 'image',
-					'application/rss+xml' => 'application/xml',
-					'application/vnd.android.package-archive' => 'package/x-generic',
-					'application/vnd.lotus-wordpro' => 'x-office/document',
-					'application/vnd.garmin.tcx+xml' => 'location',
-					'application/vnd.google-earth.kml+xml' => 'location',
-					'application/vnd.google-earth.kmz' => 'location',
-					'application/vnd.ms-excel' => 'x-office/spreadsheet',
-					'application/vnd.ms-excel.addin.macroEnabled.12' => 'x-office/spreadsheet',
-					'application/vnd.ms-excel.sheet.binary.macroEnabled.12' => 'x-office/spreadsheet',
-					'application/vnd.ms-excel.sheet.macroEnabled.12' => 'x-office/spreadsheet',
-					'application/vnd.ms-excel.template.macroEnabled.12' => 'x-office/spreadsheet',
-					'application/vnd.ms-fontobject' => 'image',
-					'application/vnd.ms-powerpoint' => 'x-office/presentation',
-					'application/vnd.ms-powerpoint.addin.macroEnabled.12' => 'x-office/presentation',
-					'application/vnd.ms-powerpoint.presentation.macroEnabled.12' => 'x-office/presentation',
-					'application/vnd.ms-powerpoint.slideshow.macroEnabled.12' => 'x-office/presentation',
-					'application/vnd.ms-powerpoint.template.macroEnabled.12' => 'x-office/presentation',
-					'application/vnd.ms-visio.drawing.macroEnabled.12' => 'application/vnd.visio',
-					'application/vnd.ms-visio.drawing' => 'application/vnd.visio',
-					'application/vnd.ms-visio.stencil.macroEnabled.12' => 'application/vnd.visio',
-					'application/vnd.ms-visio.stencil' => 'application/vnd.visio',
-					'application/vnd.ms-visio.template.macroEnabled.12' => 'application/vnd.visio',
-					'application/vnd.ms-visio.template' => 'application/vnd.visio',
-					'application/vnd.ms-word.document.macroEnabled.12' => 'x-office/document',
-					'application/vnd.ms-word.template.macroEnabled.12' => 'x-office/document',
-					'application/vnd.oasis.opendocument.presentation' => 'x-office/presentation',
-					'application/vnd.oasis.opendocument.presentation-template' => 'x-office/presentation',
-					'application/vnd.oasis.opendocument.spreadsheet' => 'x-office/spreadsheet',
-					'application/vnd.oasis.opendocument.spreadsheet-template' => 'x-office/spreadsheet',
-					'application/vnd.oasis.opendocument.text' => 'x-office/document',
-					'application/vnd.oasis.opendocument.text-master' => 'x-office/document',
-					'application/vnd.oasis.opendocument.text-template' => 'x-office/document',
-					'application/vnd.oasis.opendocument.text-web' => 'x-office/document',
-					'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'x-office/presentation',
-					'application/vnd.openxmlformats-officedocument.presentationml.slideshow' => 'x-office/presentation',
-					'application/vnd.openxmlformats-officedocument.presentationml.template' => 'x-office/presentation',
-					'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'x-office/spreadsheet',
-					'application/vnd.openxmlformats-officedocument.spreadsheetml.template' => 'x-office/spreadsheet',
-					'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'x-office/document',
-					'application/vnd.openxmlformats-officedocument.wordprocessingml.template' => 'x-office/document',
-					'application/vnd.visio' => 'x-office/document',
-					'application/vnd.wordperfect' => 'x-office/document',
-					'application/x-7z-compressed' => 'package/x-generic',
-					'application/x-bzip2' => 'package/x-generic',
-					'application/x-cbr' => 'text',
-					'application/x-compressed' => 'package/x-generic',
-					'application/x-dcraw' => 'image',
-					'application/x-deb' => 'package/x-generic',
-					'application/x-fictionbook+xml' => 'text',
-					'application/x-font' => 'image',
-					'application/x-gimp' => 'image',
-					'application/x-gzip' => 'package/x-generic',
-					'application/x-iwork-keynote-sffkey' => 'x-office/presentation',
-					'application/x-iwork-numbers-sffnumbers' => 'x-office/spreadsheet',
-					'application/x-iwork-pages-sffpages' => 'x-office/document',
-					'application/x-mobipocket-ebook' => 'text',
-					'application/x-perl' => 'text/code',
-					'application/x-photoshop' => 'image',
-					'application/x-php' => 'text/code',
-					'application/x-rar-compressed' => 'package/x-generic',
-					'application/x-tar' => 'package/x-generic',
-					'application/x-tex' => 'text',
-					'application/xml' => 'text/html',
-					'application/yaml' => 'text/code',
-					'application/zip' => 'package/x-generic',
-					'database' => 'file',
-					'httpd/unix-directory' => 'dir',
-					'text/css' => 'text/code',
-					'text/csv' => 'x-office/spreadsheet',
-					'text/html' => 'text/code',
-					'text/x-c' => 'text/code',
-					'text/x-c++src' => 'text/code',
-					'text/x-h' => 'text/code',
-					'text/x-java-source' => 'text/code',
-					'text/x-ldif' => 'text/code',
-					'text/x-python' => 'text/code',
-					'text/x-shellscript' => 'text/code',
-					'web' => 'text/code',
-					'application/internet-shortcut' => 'link',
-				));
+				 [
+				 	'_comment' => 'Array of mimetype aliases.',
+				 	'_comment2' => 'Any changes you make here will be overwritten on an update of Nextcloud.',
+				 	'_comment3' => 'Put any custom mappings in a new file mimetypealiases.json in the config/ folder of Nextcloud',
+				 	'_comment4' => 'After any change to mimetypealiases.json run:',
+				 	'_comment5' => './occ maintenance:mimetype:update-js',
+				 	'_comment6' => 'Otherwise your update won\'t propagate through the system.',
+				 	'application/coreldraw' => 'image',
+				 	'application/test' => 'image',
+				 	'application/epub+zip' => 'text',
+				 	'application/font-sfnt' => 'image',
+				 	'application/font-woff' => 'image',
+				 	'application/gpx+xml' => 'location',
+				 	'application/illustrator' => 'image',
+				 	'application/javascript' => 'text/code',
+				 	'application/json' => 'text/code',
+				 	'application/msaccess' => 'file',
+				 	'application/msexcel' => 'x-office/spreadsheet',
+				 	'application/msonenote' => 'x-office/document',
+				 	'application/mspowerpoint' => 'x-office/presentation',
+				 	'application/msword' => 'x-office/document',
+				 	'application/octet-stream' => 'file',
+				 	'application/postscript' => 'image',
+				 	'application/rss+xml' => 'application/xml',
+				 	'application/vnd.android.package-archive' => 'package/x-generic',
+				 	'application/vnd.lotus-wordpro' => 'x-office/document',
+				 	'application/vnd.garmin.tcx+xml' => 'location',
+				 	'application/vnd.google-earth.kml+xml' => 'location',
+				 	'application/vnd.google-earth.kmz' => 'location',
+				 	'application/vnd.ms-excel' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-excel.addin.macroEnabled.12' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-excel.sheet.binary.macroEnabled.12' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-excel.sheet.macroEnabled.12' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-excel.template.macroEnabled.12' => 'x-office/spreadsheet',
+				 	'application/vnd.ms-fontobject' => 'image',
+				 	'application/vnd.ms-powerpoint' => 'x-office/presentation',
+				 	'application/vnd.ms-powerpoint.addin.macroEnabled.12' => 'x-office/presentation',
+				 	'application/vnd.ms-powerpoint.presentation.macroEnabled.12' => 'x-office/presentation',
+				 	'application/vnd.ms-powerpoint.slideshow.macroEnabled.12' => 'x-office/presentation',
+				 	'application/vnd.ms-powerpoint.template.macroEnabled.12' => 'x-office/presentation',
+				 	'application/vnd.ms-visio.drawing.macroEnabled.12' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.drawing' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.stencil.macroEnabled.12' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.stencil' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.template.macroEnabled.12' => 'application/vnd.visio',
+				 	'application/vnd.ms-visio.template' => 'application/vnd.visio',
+				 	'application/vnd.ms-word.document.macroEnabled.12' => 'x-office/document',
+				 	'application/vnd.ms-word.template.macroEnabled.12' => 'x-office/document',
+				 	'application/vnd.oasis.opendocument.presentation' => 'x-office/presentation',
+				 	'application/vnd.oasis.opendocument.presentation-template' => 'x-office/presentation',
+				 	'application/vnd.oasis.opendocument.spreadsheet' => 'x-office/spreadsheet',
+				 	'application/vnd.oasis.opendocument.spreadsheet-template' => 'x-office/spreadsheet',
+				 	'application/vnd.oasis.opendocument.text' => 'x-office/document',
+				 	'application/vnd.oasis.opendocument.text-master' => 'x-office/document',
+				 	'application/vnd.oasis.opendocument.text-template' => 'x-office/document',
+				 	'application/vnd.oasis.opendocument.text-web' => 'x-office/document',
+				 	'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'x-office/presentation',
+				 	'application/vnd.openxmlformats-officedocument.presentationml.slideshow' => 'x-office/presentation',
+				 	'application/vnd.openxmlformats-officedocument.presentationml.template' => 'x-office/presentation',
+				 	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'x-office/spreadsheet',
+				 	'application/vnd.openxmlformats-officedocument.spreadsheetml.template' => 'x-office/spreadsheet',
+				 	'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'x-office/document',
+				 	'application/vnd.openxmlformats-officedocument.wordprocessingml.template' => 'x-office/document',
+				 	'application/vnd.visio' => 'x-office/document',
+				 	'application/vnd.wordperfect' => 'x-office/document',
+				 	'application/x-7z-compressed' => 'package/x-generic',
+				 	'application/x-bzip2' => 'package/x-generic',
+				 	'application/x-cbr' => 'text',
+				 	'application/x-compressed' => 'package/x-generic',
+				 	'application/x-dcraw' => 'image',
+				 	'application/x-deb' => 'package/x-generic',
+				 	'application/x-fictionbook+xml' => 'text',
+				 	'application/x-font' => 'image',
+				 	'application/x-gimp' => 'image',
+				 	'application/x-gzip' => 'package/x-generic',
+				 	'application/x-iwork-keynote-sffkey' => 'x-office/presentation',
+				 	'application/x-iwork-numbers-sffnumbers' => 'x-office/spreadsheet',
+				 	'application/x-iwork-pages-sffpages' => 'x-office/document',
+				 	'application/x-mobipocket-ebook' => 'text',
+				 	'application/x-perl' => 'text/code',
+				 	'application/x-photoshop' => 'image',
+				 	'application/x-php' => 'text/code',
+				 	'application/x-rar-compressed' => 'package/x-generic',
+				 	'application/x-tar' => 'package/x-generic',
+				 	'application/x-tex' => 'text',
+				 	'application/xml' => 'text/html',
+				 	'application/yaml' => 'text/code',
+				 	'application/zip' => 'package/x-generic',
+				 	'database' => 'file',
+				 	'httpd/unix-directory' => 'dir',
+				 	'text/css' => 'text/code',
+				 	'text/csv' => 'x-office/spreadsheet',
+				 	'text/html' => 'text/code',
+				 	'text/x-c' => 'text/code',
+				 	'text/x-c++src' => 'text/code',
+				 	'text/x-h' => 'text/code',
+				 	'text/x-java-source' => 'text/code',
+				 	'text/x-ldif' => 'text/code',
+				 	'text/x-python' => 'text/code',
+				 	'text/x-shellscript' => 'text/code',
+				 	'web' => 'text/code',
+				 	'application/internet-shortcut' => 'link',
+				 	'application/km' => 'mindmap',
+				 	'application/x-freemind' => 'mindmap',
+				 	'application/vnd.xmind.workbook' => 'mindmap'
+				 ]);
 
 		$this->environmentHelper
 			->expects($this->any())
 			->method('getServerRoot')
-			->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/mimetypeListModified'));
+			->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/mimetypeListModified');
 		$signatureDataFile = '{
-    "hashes": { 
-        "mimetypelist.js": "dc48de7ad4baa030c5e563350c9a80b274bad783f6f5adbf1595ecef6c6a32e52890a24cb26cddb0aa20193ba52c001150c68d8bfb567f0aed566f4029a190a3"
+    "hashes": {
+        "mimetypelist.js": "23a3fa45757b26795f5cf8f94d9e5bce76fc916288a6458679311b312c167adcf4158ccb2c5c3db791fa0b87703b6c5863afb6c9d790b8cbac5ab3ae8c3418fb"
     },
-    "signature": "dtNDyufRB1jOG3e\/\/Ng6O3ZPnX5wgt3rrD9SpRQ66cpWlixwvGaI6knH85MkWm3q1c+hTYBipJ\/o+nJxHWoxydMXm+F6mC5MvXWfESB\/ag4fvKe0fg25yKstzlrpIyWwcnmOhLE\/sd7D8LZOQXk72PXsIJw4vX2YPyf3peHLevlUkVhB+mfYGDQJfrtPHjJII0Do+TV2MA0qm42q7SO\/zf7Ly24nZP3AoY5bYDMewlrczS2xz9tMN2ikZZcDgHvmC2W4RkaFP9E8ZeAZphKVjyQn6HdSu7EDlJgJ1YtoqTetFzNy\/q7+ODiJDB0KUzKocEDcXF2n2cTKXKCrklB6tEhEnjADhhQNxQouq2soc0ouIujifyH2zBL0sawNxGje5wpuchhCPnWcvQnSJbK1oXnv\/0wSGsp0iSslvx9NXAZ+nQbJnIuodLBl7XuTxxPVa8jDwFdJ7mLrs79ZfN2Op4qF10PiFRoz5VztJm4KWcaWnm\/Xqxke\/6yxY+gU2c6aH\/plwzkcxhdDJjNI\/d+G+b6NSadfcrduO+gTeHK\/go68mx0k1XxCln4Qu31nPmJZcboTvAtHvHXoeqZVAzMpT+jrq+vZ3oVAvFfNpvH4CA3eZebfkV13wV4RaSETyz5QNbnBL24C26aAhkzdShKHJc4NSNV9XdFqN74XEzSZGoc=",
+    "signature": "rqdAbS1evGMhv5vQEhFwDoDgumY1La+xAEgF8TdJjyE1uEjV5442LgnIbolqH5WmGkU4EEjcIJWXEhxbtr7P1EO8WT0v7mVJBmAT0p5Gi3nxz9z9gp7mAbjfBH8McYxNzy92XbdYgiNMqi5tltYRCBXTVw1Rexh9dFc7jmLQIfpAFImR9sQG5eqGUGm+L70o34EToDnEg6Finqj4Ii5aGaGTf+DMz6wZRM2vfeegw5pxgv7EjW4R2dVTGSwwvjQbBSDzMqJHGPXkAlpnqgPDXfSLsRYXVYoRGfD6gXJ8WkjCtceQhW3FG7zMzGykogQtxWDgvbTZsz1PlzBR82UZj144ustqmCNf+ZFSwzjKpQil0hiNZmgmAGPn7frwKbDwE6TAqvqfNbpNy1GcP+eNmTn8C+tmKgyGSkqx67w8NgEn9mmPkubZk6Q/cQ/GIVprY27iPQc5irdV+COi6ZWl+WfO6BNRewlsiAYAe1XQwf4wJ5qGFzKNUd9ovWUfgh61ZthIZEVFcTGMmH4cjymnGxpbqiow4di7RQNuCKTRowmrKAWb58KUGEXxy5Nrr9M8SSn5N232iV6HSEWf5QwoKpZ2Zv9BdTXv0Rzx3MO/NWhj2O0UBmCqL1VI/uem9HoC0751GTnMSk36bIVWflJm6fimVvF7OAvZpZgNKBbtJVs=",
     "certificate": "-----BEGIN CERTIFICATE-----\r\nMIIEvjCCAqagAwIBAgIUc\/0FxYrsgSs9rDxp03EJmbjN0NwwDQYJKoZIhvcNAQEF\r\nBQAwIzEhMB8GA1UECgwYb3duQ2xvdWQgQ29kZSBTaWduaW5nIENBMB4XDTE1MTEw\r\nMzIxMDMzM1oXDTE2MTEwMzIxMDMzM1owDzENMAsGA1UEAwwEY29yZTCCAiIwDQYJ\r\nKoZIhvcNAQEBBQADggIPADCCAgoCggIBALb6EgHpkAqZbO5vRO8XSh7G7XGWHw5s\r\niOf4RwPXR6SE9bWZEm\/b72SfWk\/\/J6AbrD8WiOzBuT\/ODy6k5T1arEdHO+Pux0W1\r\nMxYJJI4kH74KKgMpC0SB0Rt+8WrMqV1r3hhJ46df6Xr\/xolP3oD+eLbShPcblhdS\r\nVtkZEkoev8Sh6L2wDCeHDyPxzvj1w2dTdGVO9Kztn0xIlyfEBakqvBWtcxyi3Ln0\r\nklnxlMx3tPDUE4kqvpia9qNiB1AN2PV93eNr5\/2riAzIssMFSCarWCx0AKYb54+d\r\nxLpcYFyqPJ0ydBCkF78DD45RCZet6PNYkdzgbqlUWEGGomkuDoJbBg4wzgzO0D77\r\nH87KFhYW8tKFFvF1V3AHl\/sFQ9tDHaxM9Y0pZ2jPp\/ccdiqnmdkBxBDqsiRvHvVB\r\nCn6qpb4vWGFC7vHOBfYspmEL1zLlKXZv3ezMZEZw7O9ZvUP3VO\/wAtd2vUW8UFiq\r\ns2v1QnNLN6jNh51obcwmrBvWhJy9vQIdtIjQbDxqWTHh1zUSrw9wrlklCBZ\/zrM0\r\ni8nfCFwTxWRxp3H9KoECzO\/zS5R5KIS7s3\/wq\/w9T2Ie4rcecgXwDizwnn0C\/aKc\r\nbDIjujpL1s9HO05pcD\/V3wKcPZ1izymBkmMyIbL52iRVN5FTVHeZdXPpFuq+CTQJ\r\nQ238lC+A\/KOVAgMBAAEwDQYJKoZIhvcNAQEFBQADggIBAGoKTnh8RfJV4sQItVC2\r\nAvfJagkrIqZ3iiQTUBQGTKBsTnAqE1H7QgUSV9vSd+8rgvHkyZsRjmtyR1e3A6Ji\r\noNCXUbExC\/0iCPUqdHZIVb+Lc\/vWuv4ByFMybGPydgtLoEUX2ZrKFWmcgZFDUSRd\r\n9Uj26vtUhCC4bU4jgu6hIrR9IuxOBLQUxGTRZyAcXvj7obqRAEZwFAKQgFpfpqTb\r\nH+kjcbZSaAlLVSF7vBc1syyI8RGYbqpwvtREqJtl5IEIwe6huEqJ3zPnlP2th\/55\r\ncf3Fovj6JJgbb9XFxrdnsOsDOu\/tpnaRWlvv5ib4+SzG5wWFT5UUEo4Wg2STQiiX\r\nuVSRQxK1LE1yg84bs3NZk9FSQh4B8vZVuRr5FaJsZZkwlFlhRO\/\/+TJtXRbyNgsf\r\noMRZGi8DLGU2SGEAHcRH\/QZHq\/XDUWVzdxrSBYcy7GSpT7UDVzGv1rEJUrn5veP1\r\n0KmauAqtiIaYRm4f6YBsn0INcZxzIPZ0p8qFtVZBPeHhvQtvOt0iXI\/XUxEWOa2F\r\nK2EqhErgMK\/N07U1JJJay5tYZRtvkGq46oP\/5kQG8hYST0MDK6VihJoPpvCmAm4E\r\npEYKQ96x6A4EH9Y9mZlYozH\/eqmxPbTK8n89\/p7Ydun4rI+B2iiLnY8REWWy6+UQ\r\nV204fGUkJqW5CrKy3P3XvY9X\r\n-----END CERTIFICATE-----"
 }';
 		$this->fileAccessHelper
@@ -1008,34 +1013,33 @@ class CheckerTest extends TestCase {
 			->with(
 				\OC::$SERVERROOT . '/tests/data/integritycheck/mimetypeListModified/core/signature.json'
 			)
-			->will($this->returnValue($signatureDataFile));
+			->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 			->expects($this->at(1))
 			->method('file_get_contents')
 			->with(
 				\OC::$SERVERROOT . '/tests/data/integritycheck/mimetypeListModified/resources/codesigning/root.crt'
 			)
-			->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+			->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$this->assertSame([], $this->checker->verifyCoreSignature());
-
 	}
 
 	public function testVerifyCoreSignatureWithValidSignatureDataAndNotAlphabeticOrder() {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/app/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -1050,14 +1054,14 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//core/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$this->assertSame([], $this->checker->verifyCoreSignature());
 	}
@@ -1066,17 +1070,17 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "tampered",
@@ -1091,20 +1095,20 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//core/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$expected = [
-				'EXCEPTION' => [
-						'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
-						'message' => 'Signature could not get verified.',
-				]
+			'EXCEPTION' => [
+				'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
+				'message' => 'Signature could not get verified.',
+			]
 		];
 		$this->assertSame($expected, $this->checker->verifyCoreSignature());
 	}
@@ -1113,17 +1117,17 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -1138,34 +1142,34 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//core/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$expected = [
-				'INVALID_HASH' => [
-						'AnotherFile.txt' => [
-								'expected' => '1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112',
-								'current' => '7322348ba269c6d5522efe02f424fa3a0da319a7cd9c33142a5afe32a2d9af2da3a411f086fcfc96ff4301ea566f481dba0960c2abeef3594c4d930462f6584c',
-						],
+			'INVALID_HASH' => [
+				'AnotherFile.txt' => [
+					'expected' => '1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112',
+					'current' => '7322348ba269c6d5522efe02f424fa3a0da319a7cd9c33142a5afe32a2d9af2da3a411f086fcfc96ff4301ea566f481dba0960c2abeef3594c4d930462f6584c',
 				],
-				'FILE_MISSING' => [
-						'subfolder/file.txt' => [
-								'expected' => '410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b',
-								'current' => '',
-						],
+			],
+			'FILE_MISSING' => [
+				'subfolder/file.txt' => [
+					'expected' => '410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b',
+					'current' => '',
 				],
-				'EXTRA_FILE' => [
-						'UnecessaryFile' => [
-								'expected' => '',
-								'current' => 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
-						],
+			],
+			'EXTRA_FILE' => [
+				'UnecessaryFile' => [
+					'expected' => '',
+					'current' => 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
 				],
+			],
 
 		];
 		$this->assertSame($expected, $this->checker->verifyCoreSignature());
@@ -1175,17 +1179,17 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/app/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -1200,20 +1204,20 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//core/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$expected = [
-				'EXCEPTION' => [
-						'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
-						'message' => 'Certificate is not valid.',
-				]
+			'EXCEPTION' => [
+				'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
+				'message' => 'Certificate is not valid.',
+			]
 		];
 		$this->assertSame($expected, $this->checker->verifyCoreSignature());
 	}
@@ -1222,17 +1226,17 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+				->willReturn(false);
 
 		$this->environmentHelper
 				->expects($this->any())
 				->method('getServerRoot')
-				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+				->willReturn(\OC::$SERVERROOT . '/tests/data/integritycheck/app/');
 		$signatureDataFile = '{
     "hashes": {
         "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
@@ -1247,20 +1251,20 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//core/signature.json'
 				)
-				->will($this->returnValue($signatureDataFile));
+				->willReturn($signatureDataFile);
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_get_contents')
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->willReturn(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt'));
 
 		$expected = [
-				'EXCEPTION' => [
-						'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
-						'message' => 'Certificate is not valid for required scope. (Requested: core, current: CN=SomeApp)',
-				]
+			'EXCEPTION' => [
+				'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
+				'message' => 'Certificate is not valid for required scope. (Requested: core, current: CN=SomeApp)',
+			]
 		];
 		$this->assertSame($expected, $this->checker->verifyCoreSignature());
 	}
@@ -1274,7 +1278,6 @@ class CheckerTest extends TestCase {
 				$this->config,
 				$this->cacheFactory,
 				$this->appManager,
-				\OC::$server->getTempManager(),
 				$this->mimeTypeDetector,
 			])
 			->setMethods([
@@ -1289,17 +1292,17 @@ class CheckerTest extends TestCase {
 		$this->appLocator
 			->expects($this->at(0))
 			->method('getAllApps')
-			->will($this->returnValue([
+			->willReturn([
 				'files',
 				'calendar',
 				'contacts',
 				'dav',
-			]));
+			]);
 		$this->appManager
 			->expects($this->at(0))
 			->method('isShipped')
 			->with('files')
-			->will($this->returnValue(true));
+			->willReturn(true);
 		$this->checker
 			->expects($this->at(1))
 			->method('verifyAppSignature')
@@ -1308,17 +1311,17 @@ class CheckerTest extends TestCase {
 			->expects($this->at(1))
 			->method('isShipped')
 			->with('calendar')
-			->will($this->returnValue(false));
+			->willReturn(false);
 		$this->appLocator
 			->expects($this->at(1))
 			->method('getAppPath')
 			->with('calendar')
-			->will($this->returnValue('/apps/calendar'));
+			->willReturn('/apps/calendar');
 		$this->fileAccessHelper
 			->expects($this->at(0))
 			->method('file_exists')
 			->with('/apps/calendar/appinfo/signature.json')
-			->will($this->returnValue(true));
+			->willReturn(true);
 		$this->checker
 			->expects($this->at(2))
 			->method('verifyAppSignature')
@@ -1327,22 +1330,22 @@ class CheckerTest extends TestCase {
 				->expects($this->at(2))
 				->method('isShipped')
 				->with('contacts')
-				->will($this->returnValue(false));
+				->willReturn(false);
 		$this->appLocator
 				->expects($this->at(2))
 				->method('getAppPath')
 				->with('contacts')
-				->will($this->returnValue('/apps/contacts'));
+				->willReturn('/apps/contacts');
 		$this->fileAccessHelper
 				->expects($this->at(1))
 				->method('file_exists')
 				->with('/apps/contacts/appinfo/signature.json')
-				->will($this->returnValue(false));
+				->willReturn(false);
 		$this->appManager
 			->expects($this->at(3))
 			->method('isShipped')
 			->with('dav')
-			->will($this->returnValue(true));
+			->willReturn(true);
 		$this->checker
 			->expects($this->at(3))
 			->method('verifyAppSignature')
@@ -1359,12 +1362,12 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue('stable'));
+				->willReturn('stable');
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(true));
+				->willReturn(true);
 
 		$expected = [];
 		$this->assertSame($expected, $this->checker->verifyAppSignature('SomeApp'));
@@ -1389,12 +1392,12 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 			->expects($this->once())
 			->method('getChannel')
-			->will($this->returnValue($channel));
+			->willReturn($channel);
 		$this->config
 			->expects($this->any())
 			->method('getSystemValue')
 			->with('integrity.check.disabled', false)
-			->will($this->returnValue(false));
+			->willReturn(false);
 
 		$this->assertSame($isCodeSigningEnforced, $this->checker->isCodeCheckEnforced());
 	}
@@ -1407,12 +1410,12 @@ class CheckerTest extends TestCase {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
-				->will($this->returnValue($channel));
+				->willReturn($channel);
 		$this->config
 				->expects($this->any())
 				->method('getSystemValue')
 				->with('integrity.check.disabled', false)
-				->will($this->returnValue(true));
+				->willReturn(true);
 
 		$this->assertFalse(self::invokePrivate($this->checker, 'isCodeCheckEnforced'));
 	}

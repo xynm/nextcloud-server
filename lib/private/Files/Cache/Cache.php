@@ -6,6 +6,8 @@
  * @author Ari Selseng <ari@selseng.net>
  * @author Artem Kochnev <MrJeos@gmail.com>
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Daniel Kesselberg <mail@danielkesselberg.de>
  * @author Florin Peter <github@florin-peter.de>
  * @author Frédéric Fortier <frederic.fortier@oronospolytechnique.com>
  * @author Jens-Christian Fischer <jens-christian.fischer@switch.ch>
@@ -17,8 +19,7 @@
  * @author Robin Appelman <robin@icewind.nl>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
- * @author Thomas Müller <thomas.mueller@tmit.eu>
- * @author Vincent Petry <pvince81@owncloud.com>
+ * @author Vincent Petry <vincent@nextcloud.com>
  *
  * @license AGPL-3.0
  *
@@ -32,16 +33,20 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OC\Files\Cache;
 
-use Doctrine\DBAL\Driver\Statement;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use OCP\DB\IResult;
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\EventDispatcher\IEventDispatcher;
+use OCP\Files\Cache\CacheEntryInsertedEvent;
+use OCP\Files\Cache\CacheEntryUpdatedEvent;
 use OCP\Files\Cache\CacheInsertEvent;
+use OCP\Files\Cache\CacheEntryRemovedEvent;
 use OCP\Files\Cache\CacheUpdateEvent;
 use OCP\Files\Cache\ICache;
 use OCP\Files\Cache\ICacheEntry;
@@ -91,6 +96,9 @@ class Cache implements ICache {
 	 */
 	protected $connection;
 
+	/**
+	 * @var IEventDispatcher
+	 */
 	protected $eventDispatcher;
 
 	/** @var QuerySearchHelper */
@@ -109,7 +117,7 @@ class Cache implements ICache {
 		$this->storageCache = new Storage($storage);
 		$this->mimetypeLoader = \OC::$server->getMimeTypeLoader();
 		$this->connection = \OC::$server->getDatabaseConnection();
-		$this->eventDispatcher = \OC::$server->getEventDispatcher();
+		$this->eventDispatcher = \OC::$server->get(IEventDispatcher::class);
 		$this->querySearchHelper = new QuerySearchHelper($this->mimetypeLoader);
 	}
 
@@ -151,12 +159,14 @@ class Cache implements ICache {
 			$query->whereFileId($file);
 		}
 
-		$data = $query->execute()->fetch();
+		$result = $query->execute();
+		$data = $result->fetch();
+		$result->closeCursor();
 
 		//merge partial data
 		if (!$data and is_string($file) and isset($this->partial[$file])) {
 			return $this->partial[$file];
-		} else if (!$data) {
+		} elseif (!$data) {
 			return $data;
 		} else {
 			return self::cacheEntryFromData($data, $this->mimetypeLoader);
@@ -220,7 +230,10 @@ class Cache implements ICache {
 				->whereParent($fileId)
 				->orderBy('name', 'ASC');
 
-			$files = $query->execute()->fetchAll();
+			$result = $query->execute();
+			$files = $result->fetchAll();
+			$result->closeCursor();
+
 			return array_map(function (array $data) {
 				return self::cacheEntryFromData($data, $this->mimetypeLoader);
 			}, $files);
@@ -254,8 +267,6 @@ class Cache implements ICache {
 	 *
 	 * @return int file id
 	 * @throws \RuntimeException
-	 *
-	 * @suppress SqlInjectionChecker
 	 */
 	public function insert($file, array $data) {
 		// normalize file
@@ -275,11 +286,14 @@ class Cache implements ICache {
 		}
 
 		$data['path'] = $file;
-		$data['parent'] = $this->getParentId($file);
+		if (!isset($data['parent'])) {
+			$data['parent'] = $this->getParentId($file);
+		}
 		$data['name'] = basename($file);
 
 		[$values, $extensionValues] = $this->normalizeData($data);
-		$values['storage'] = $this->getNumericStorageId();
+		$storageId = $this->getNumericStorageId();
+		$values['storage'] = $storageId;
 
 		try {
 			$builder = $this->connection->getQueryBuilder();
@@ -303,11 +317,17 @@ class Cache implements ICache {
 					$query->execute();
 				}
 
-				$this->eventDispatcher->dispatch(CacheInsertEvent::class, new CacheInsertEvent($this->storage, $file, $fileId));
+				$event = new CacheEntryInsertedEvent($this->storage, $file, $fileId, $storageId);
+				$this->eventDispatcher->dispatch(CacheInsertEvent::class, $event);
+				$this->eventDispatcher->dispatchTyped($event);
 				return $fileId;
 			}
 		} catch (UniqueConstraintViolationException $e) {
 			// entry exists already
+			if ($this->connection->inTransaction()) {
+				$this->connection->commit();
+				$this->connection->beginTransaction();
+			}
 		}
 
 		// The file was created in the mean time
@@ -326,7 +346,6 @@ class Cache implements ICache {
 	 * @param array $data [$key => $value] the metadata to update, only the fields provided in the array will be updated, non-provided values will remain unchanged
 	 */
 	public function update($id, array $data) {
-
 		if (isset($data['path'])) {
 			// normalize path
 			$data['path'] = $this->normalize($data['path']);
@@ -391,7 +410,9 @@ class Cache implements ICache {
 		$path = $this->getPathById($id);
 		// path can still be null if the file doesn't exist
 		if ($path !== null) {
-			$this->eventDispatcher->dispatch(CacheUpdateEvent::class, new CacheUpdateEvent($this->storage, $path, $id));
+			$event = new CacheEntryUpdatedEvent($this->storage, $path, $id, $this->getNumericStorageId());
+			$this->eventDispatcher->dispatch(CacheUpdateEvent::class, $event);
+			$this->eventDispatcher->dispatchTyped($event);
 		}
 	}
 
@@ -420,14 +441,14 @@ class Cache implements ICache {
 			if (array_search($name, $fields) !== false) {
 				if ($name === 'path') {
 					$params['path_hash'] = md5($value);
-				} else if ($name === 'mimetype') {
+				} elseif ($name === 'mimetype') {
 					$params['mimepart'] = $this->mimetypeLoader->getId(substr($value, 0, strpos($value, '/')));
 					$value = $this->mimetypeLoader->getId($value);
-				} else if ($name === 'storage_mtime') {
+				} elseif ($name === 'storage_mtime') {
 					if (!$doNotCopyStorageMTime && !isset($data['mtime'])) {
 						$params['mtime'] = $value;
 					}
-				} else if ($name === 'encrypted') {
+				} elseif ($name === 'encrypted') {
 					if (isset($data['encryptedVersion'])) {
 						$value = $data['encryptedVersion'];
 					} else {
@@ -464,7 +485,10 @@ class Cache implements ICache {
 			->whereStorageId()
 			->wherePath($file);
 
-		$id = $query->execute()->fetchColumn();
+		$result = $query->execute();
+		$id = $result->fetchOne();
+		$result->closeCursor();
+
 		return $id === false ? -1 : (int)$id;
 	}
 
@@ -525,6 +549,8 @@ class Cache implements ICache {
 			if ($entry->getMimeType() == FileInfo::MIMETYPE_FOLDER) {
 				$this->removeChildren($entry);
 			}
+
+			$this->eventDispatcher->dispatchTyped(new CacheEntryRemovedEvent($this->storage, $entry->getPath(), $entry->getId(), $this->getNumericStorageId()));
 		}
 	}
 
@@ -548,25 +574,35 @@ class Cache implements ICache {
 	 * @throws \OC\DatabaseException
 	 */
 	private function removeChildren(ICacheEntry $entry) {
-		$children = $this->getFolderContentsById($entry->getId());
-		$childIds = array_map(function(ICacheEntry $cacheEntry) {
-			return $cacheEntry->getId();
-		}, $children);
-		$childFolders = array_filter($children, function ($child) {
-			return $child->getMimeType() == FileInfo::MIMETYPE_FOLDER;
-		});
-		foreach ($childFolders as $folder) {
-			$this->removeChildren($folder);
+		$parentIds = [$entry->getId()];
+		$queue = [$entry->getId()];
+
+		// we walk depth first trough the file tree, removing all filecache_extended attributes while we walk
+		// and collecting all folder ids to later use to delete the filecache entries
+		while ($entryId = array_pop($queue)) {
+			$children = $this->getFolderContentsById($entryId);
+			$childIds = array_map(function (ICacheEntry $cacheEntry) {
+				return $cacheEntry->getId();
+			}, $children);
+
+			$query = $this->getQueryBuilder();
+			$query->delete('filecache_extended')
+				->where($query->expr()->in('fileid', $query->createNamedParameter($childIds, IQueryBuilder::PARAM_INT_ARRAY)));
+			$query->execute();
+
+			/** @var ICacheEntry[] $childFolders */
+			$childFolders = array_filter($children, function ($child) {
+				return $child->getMimeType() == FileInfo::MIMETYPE_FOLDER;
+			});
+			foreach ($childFolders as $folder) {
+				$parentIds[] = $folder->getId();
+				$queue[] = $folder->getId();
+			}
 		}
 
 		$query = $this->getQueryBuilder();
 		$query->delete('filecache')
-			->whereParent($entry->getId());
-		$query->execute();
-
-		$query = $this->getQueryBuilder();
-		$query->delete('filecache_extended')
-			->where($query->expr()->in('fileid', $query->createNamedParameter($childIds, IQueryBuilder::PARAM_INT_ARRAY)));
+			->whereParentIn($parentIds);
 		$query->execute();
 	}
 
@@ -598,7 +634,6 @@ class Cache implements ICache {
 	 * @param string $targetPath
 	 * @throws \OC\DatabaseException
 	 * @throws \Exception if the given storages have an invalid id
-	 * @suppress SqlInjectionChecker
 	 */
 	public function moveFromCache(ICache $sourceCache, $sourcePath, $targetPath) {
 		if ($sourceCache instanceof Cache) {
@@ -610,8 +645,8 @@ class Cache implements ICache {
 			$sourceId = $sourceData['fileid'];
 			$newParentId = $this->getParentId($targetPath);
 
-			list($sourceStorageId, $sourcePath) = $sourceCache->getMoveInfo($sourcePath);
-			list($targetStorageId, $targetPath) = $this->getMoveInfo($targetPath);
+			[$sourceStorageId, $sourcePath] = $sourceCache->getMoveInfo($sourcePath);
+			[$targetStorageId, $targetPath] = $this->getMoveInfo($targetPath);
 
 			if (is_null($sourceStorageId) || $sourceStorageId === false) {
 				throw new \Exception('Invalid source storage id: ' . $sourceStorageId);
@@ -657,6 +692,17 @@ class Cache implements ICache {
 			$query->execute();
 
 			$this->connection->commit();
+
+			if ($sourceCache->getNumericStorageId() !== $this->getNumericStorageId()) {
+				$this->eventDispatcher->dispatchTyped(new CacheEntryRemovedEvent($this->storage, $sourcePath, $sourceId, $sourceCache->getNumericStorageId()));
+				$event = new CacheEntryInsertedEvent($this->storage, $targetPath, $sourceId, $this->getNumericStorageId());
+				$this->eventDispatcher->dispatch(CacheInsertEvent::class, $event);
+				$this->eventDispatcher->dispatchTyped($event);
+			} else {
+				$event = new CacheEntryUpdatedEvent($this->storage, $targetPath, $sourceId, $this->getNumericStorageId());
+				$this->eventDispatcher->dispatch(CacheUpdateEvent::class, $event);
+				$this->eventDispatcher->dispatchTyped($event);
+			}
 		} else {
 			$this->moveFromCacheFallback($sourceCache, $sourcePath, $targetPath);
 		}
@@ -698,7 +744,11 @@ class Cache implements ICache {
 			->from('filecache')
 			->whereStorageId()
 			->wherePath($file);
-		$size = $query->execute()->fetchColumn();
+
+		$result = $query->execute();
+		$size = $result->fetchOne();
+		$result->closeCursor();
+
 		if ($size !== false) {
 			if ((int)$size === -1) {
 				return self::SHALLOW;
@@ -733,16 +783,20 @@ class Cache implements ICache {
 			->whereStorageId()
 			->andWhere($query->expr()->iLike('name', $query->createNamedParameter($pattern)));
 
+		$result = $query->execute();
+		$files = $result->fetchAll();
+		$result->closeCursor();
+
 		return array_map(function (array $data) {
 			return self::cacheEntryFromData($data, $this->mimetypeLoader);
-		}, $query->execute()->fetchAll());
+		}, $files);
 	}
 
 	/**
-	 * @param Statement $result
+	 * @param IResult $result
 	 * @return CacheEntry[]
 	 */
-	private function searchResultToCacheEntries(Statement $result) {
+	private function searchResultToCacheEntries(IResult $result): array {
 		$files = $result->fetchAll();
 
 		return array_map(function (array $data) {
@@ -770,9 +824,13 @@ class Cache implements ICache {
 			$query->andWhere($query->expr()->eq('mimepart', $query->createNamedParameter($mimeId, IQueryBuilder::PARAM_INT)));
 		}
 
+		$result = $query->execute();
+		$files = $result->fetchAll();
+		$result->closeCursor();
+
 		return array_map(function (array $data) {
 			return self::cacheEntryFromData($data, $this->mimetypeLoader);
-		}, $query->execute()->fetchAll());
+		}, $files);
 	}
 
 	public function searchQuery(ISearchQuery $searchQuery) {
@@ -793,7 +851,14 @@ class Cache implements ICache {
 				->andWhere($builder->expr()->eq('tag.uid', $builder->createNamedParameter($searchQuery->getUser()->getUID())));
 		}
 
-		$query->andWhere($this->querySearchHelper->searchOperatorToDBExpr($builder, $searchQuery->getSearchOperation()));
+		$searchExpr = $this->querySearchHelper->searchOperatorToDBExpr($builder, $searchQuery->getSearchOperation());
+		if ($searchExpr) {
+			$query->andWhere($searchExpr);
+		}
+
+		if ($searchQuery->limitToHome() && ($this instanceof HomeCache)) {
+			$query->andWhere($builder->expr()->like('path', $query->expr()->literal('files/%')));
+		}
 
 		$this->querySearchHelper->addSearchOrdersToQuery($query, $searchQuery->getOrder());
 
@@ -805,7 +870,9 @@ class Cache implements ICache {
 		}
 
 		$result = $query->execute();
-		return $this->searchResultToCacheEntries($result);
+		$cacheEntries = $this->searchResultToCacheEntries($result);
+		$result->closeCursor();
+		return $cacheEntries;
 	}
 
 	/**
@@ -846,7 +913,11 @@ class Cache implements ICache {
 				->whereParent($fileId)
 				->andWhere($query->expr()->lt('size', $query->createNamedParameter(0, IQueryBuilder::PARAM_INT)));
 
-			return (int)$query->execute()->fetchColumn();
+			$result = $query->execute();
+			$size = (int)$result->fetchOne();
+			$result->closeCursor();
+
+			return $size;
 		}
 		return -1;
 	}
@@ -873,8 +944,12 @@ class Cache implements ICache {
 				->whereStorageId()
 				->whereParent($id);
 
-			if ($row = $query->execute()->fetch()) {
-				list($sum, $min) = array_values($row);
+			$result = $query->execute();
+			$row = $result->fetch();
+			$result->closeCursor();
+
+			if ($row) {
+				[$sum, $min] = array_values($row);
 				$sum = 0 + $sum;
 				$min = 0 + $min;
 				if ($min === -1) {
@@ -901,9 +976,13 @@ class Cache implements ICache {
 			->from('filecache')
 			->whereStorageId();
 
+		$result = $query->execute();
+		$files = $result->fetchAll(\PDO::FETCH_COLUMN);
+		$result->closeCursor();
+
 		return array_map(function ($id) {
 			return (int)$id;
-		}, $query->execute()->fetchAll(\PDO::FETCH_COLUMN));
+		}, $files);
 	}
 
 	/**
@@ -921,9 +1000,14 @@ class Cache implements ICache {
 			->from('filecache')
 			->whereStorageId()
 			->andWhere($query->expr()->lt('size', $query->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
-			->orderBy('fileid', 'DESC');
+			->orderBy('fileid', 'DESC')
+			->setMaxResults(1);
 
-		return $query->execute()->fetchColumn();
+		$result = $query->execute();
+		$path = $result->fetchOne();
+		$result->closeCursor();
+
+		return $path;
 	}
 
 	/**
@@ -939,8 +1023,15 @@ class Cache implements ICache {
 			->whereStorageId()
 			->whereFileId($id);
 
-		$path = $query->execute()->fetchColumn();
-		return $path === false ? null : $path;
+		$result = $query->execute();
+		$path = $result->fetchOne();
+		$result->closeCursor();
+
+		if ($path === false) {
+			return null;
+		}
+
+		return (string) $path;
 	}
 
 	/**
@@ -952,12 +1043,17 @@ class Cache implements ICache {
 	 * @return array first element holding the storage id, second the path
 	 * @deprecated use getPathById() instead
 	 */
-	static public function getById($id) {
+	public static function getById($id) {
 		$query = \OC::$server->getDatabaseConnection()->getQueryBuilder();
 		$query->select('path', 'storage')
 			->from('filecache')
 			->where($query->expr()->eq('fileid', $query->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
-		if ($row = $query->execute()->fetch()) {
+
+		$result = $query->execute();
+		$row = $result->fetch();
+		$result->closeCursor();
+
+		if ($row) {
 			$numericId = $row['storage'];
 			$path = $row['path'];
 		} else {
@@ -978,7 +1074,6 @@ class Cache implements ICache {
 	 * @return string
 	 */
 	public function normalize($path) {
-
 		return trim(\OC_Util::normalizeUnicode($path), '/');
 	}
 }

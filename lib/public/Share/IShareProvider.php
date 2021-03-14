@@ -2,6 +2,8 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Bjoern Schiessle <bjoern@schiessle.org>
+ * @author Daniel Calviño Sánchez <danxuliu@gmail.com>
  * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <robin@icewind.nl>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
@@ -18,7 +20,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -32,7 +34,6 @@ use OCP\Share\Exceptions\ShareNotFound;
 /**
  * Interface IShareProvider
  *
- * @package OCP\Share
  * @since 9.0.0
  */
 interface IShareProvider {
@@ -123,7 +124,7 @@ interface IShareProvider {
 	 * @param string $userId
 	 * @param Folder $node
 	 * @param bool $reshares Also get the shares where $user is the owner instead of just the shares where $user is the initiator
-	 * @return \OCP\Share\IShare[]
+	 * @return \OCP\Share\IShare[][]
 	 * @since 11.0.0
 	 */
 	public function getSharesInFolder($userId, Folder $node, $reshares);

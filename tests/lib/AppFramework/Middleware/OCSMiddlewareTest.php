@@ -42,7 +42,7 @@ class OCSMiddlewareTest extends \Test\TestCase {
 	 */
 	private $request;
 
-	protected function setUp() {
+	protected function setUp(): void {
 		parent::setUp();
 
 		$this->request = $this->getMockBuilder(IRequest::class)
@@ -107,7 +107,7 @@ class OCSMiddlewareTest extends \Test\TestCase {
 			$this->assertSame($message, $this->invokePrivate($result, 'statusMessage'));
 
 			if ($exception->getCode() === 0) {
-				$this->assertSame(\OCP\API::RESPOND_UNKNOWN_ERROR, $result->getOCSStatus());
+				$this->assertSame(\OCP\AppFramework\OCSController::RESPOND_UNKNOWN_ERROR, $result->getOCSStatus());
 			} else {
 				$this->assertSame($code, $result->getOCSStatus());
 			}
@@ -147,7 +147,7 @@ class OCSMiddlewareTest extends \Test\TestCase {
 
 			$this->assertSame($message, $this->invokePrivate($result, 'statusMessage'));
 			if ($exception->getCode() === 0) {
-				$this->assertSame(\OCP\API::RESPOND_UNKNOWN_ERROR, $result->getOCSStatus());
+				$this->assertSame(\OCP\AppFramework\OCSController::RESPOND_UNKNOWN_ERROR, $result->getOCSStatus());
 			} else {
 				$this->assertSame($code, $result->getOCSStatus());
 			}
@@ -182,7 +182,7 @@ class OCSMiddlewareTest extends \Test\TestCase {
 
 			$this->assertSame($message, $this->invokePrivate($result, 'statusMessage'));
 			if ($exception->getCode() === 0) {
-				$this->assertSame(\OCP\API::RESPOND_UNKNOWN_ERROR, $result->getOCSStatus());
+				$this->assertSame(\OCP\AppFramework\OCSController::RESPOND_UNKNOWN_ERROR, $result->getOCSStatus());
 			} else {
 				$this->assertSame($code, $result->getOCSStatus());
 			}
@@ -232,11 +232,9 @@ class OCSMiddlewareTest extends \Test\TestCase {
 			$this->assertSame($response, $newResponse);
 		} else {
 			$this->assertInstanceOf(BaseResponse::class, $newResponse);
-			/** @var Http\OCSResponse $newResponse */
 			$this->assertSame($response->getData()['message'], $this->invokePrivate($newResponse, 'statusMessage'));
-			$this->assertSame(\OCP\API::RESPOND_UNAUTHORISED, $newResponse->getOCSStatus());
+			$this->assertSame(\OCP\AppFramework\OCSController::RESPOND_UNAUTHORISED, $newResponse->getOCSStatus());
 			$this->assertSame(Http::STATUS_UNAUTHORIZED, $newResponse->getStatus());
 		}
 	}
-
 }

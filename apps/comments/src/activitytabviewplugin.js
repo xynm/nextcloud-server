@@ -18,7 +18,7 @@
 		 * @param {jQuery} $el jQuery handle for this activity
 		 * @param {string} view The view that displayes this activity
 		 */
-		prepareModelForDisplay: function(model, $el, view) {
+		prepareModelForDisplay(model, $el, view) {
 			if (model.get('app') !== 'comments' || model.get('type') !== 'comments') {
 				return
 			}
@@ -27,7 +27,7 @@
 				$el.addClass('comment')
 				if (model.get('message') && this._isLong(model.get('message'))) {
 					$el.addClass('collapsed')
-					var $overlay = $('<div>').addClass('message-overlay')
+					const $overlay = $('<div>').addClass('message-overlay')
 					$el.find('.activitymessage').after($overlay)
 					$el.on('click', this._onClickCollapsedComment)
 				}
@@ -37,8 +37,8 @@
 		/*
 		 * Copy of CommentsTabView._onClickComment()
 		 */
-		_onClickCollapsedComment: function(ev) {
-			var $row = $(ev.target)
+		_onClickCollapsedComment(ev) {
+			let $row = $(ev.target)
 			if (!$row.is('.comment')) {
 				$row = $row.closest('.comment')
 			}
@@ -48,9 +48,9 @@
 		/*
 		 * Copy of CommentsTabView._isLong()
 		 */
-		_isLong: function(message) {
+		_isLong(message) {
 			return message.length > 250 || (message.match(/\n/g) || []).length > 1
-		}
+		},
 	}
 
 })()

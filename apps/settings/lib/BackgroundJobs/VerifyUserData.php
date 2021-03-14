@@ -2,9 +2,14 @@
 /**
  * @copyright Copyright (c) 2017 Bjoern Schiessle <bjoern@schiessle.org>
  *
+ * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Bjoern Schiessle <bjoern@schiessle.org>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Morris Jobke <hey@morrisjobke.de>
  * @author Patrik Kernstock <info@pkern.at>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -19,18 +24,18 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 namespace OCA\Settings\BackgroundJobs;
 
-
 use OC\Accounts\AccountManager;
-use OC\BackgroundJob\Job;
-use OC\BackgroundJob\JobList;
+use OCP\Accounts\IAccountManager;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\IJobList;
+use OCP\BackgroundJob\Job;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use OCP\ILogger;
@@ -65,21 +70,14 @@ class VerifyUserData extends Job {
 	/** @var IConfig */
 	private $config;
 
-	/**
-	 * VerifyUserData constructor.
-	 *
-	 * @param AccountManager $accountManager
-	 * @param IUserManager $userManager
-	 * @param IClientService $clientService
-	 * @param ILogger $logger
-	 * @param IConfig $config
-	 */
 	public function __construct(AccountManager $accountManager,
 								IUserManager $userManager,
 								IClientService $clientService,
 								ILogger $logger,
+								ITimeFactory $timeFactory,
 								IConfig $config
 	) {
+		parent::__construct($timeFactory);
 		$this->accountManager = $accountManager;
 		$this->userManager = $userManager;
 		$this->httpClientService = $clientService;
@@ -93,11 +91,10 @@ class VerifyUserData extends Job {
 	/**
 	 * run the job, then remove it from the jobList
 	 *
-	 * @param JobList $jobList
+	 * @param IJobList $jobList
 	 * @param ILogger|null $logger
 	 */
-	public function execute($jobList, ILogger $logger = null) {
-
+	public function execute(IJobList $jobList, ILogger $logger = null) {
 		if ($this->shouldRun($this->argument)) {
 			parent::execute($jobList, $logger);
 			$jobList->remove($this, $this->argument);
@@ -107,19 +104,17 @@ class VerifyUserData extends Job {
 				$this->resetVerificationState();
 			}
 		}
-
 	}
 
 	protected function run($argument) {
-
 		$try = (int)$argument['try'] + 1;
 
-		switch($argument['type']) {
-			case AccountManager::PROPERTY_WEBSITE:
+		switch ($argument['type']) {
+			case IAccountManager::PROPERTY_WEBSITE:
 				$result = $this->verifyWebsite($argument);
 				break;
-			case AccountManager::PROPERTY_TWITTER:
-			case AccountManager::PROPERTY_EMAIL:
+			case IAccountManager::PROPERTY_TWITTER:
+			case IAccountManager::PROPERTY_EMAIL:
 				$result = $this->verifyViaLookupServer($argument, $argument['type']);
 				break;
 			default:
@@ -140,7 +135,6 @@ class VerifyUserData extends Job {
 	 * @return bool true if we could check the verification code, otherwise false
 	 */
 	protected function verifyWebsite(array $argument) {
-
 		$result = false;
 
 		$url = rtrim($argument['data'], '/') . '/.well-known/' . 'CloudIdVerificationCode.txt';
@@ -166,9 +160,9 @@ class VerifyUserData extends Job {
 			$userData = $this->accountManager->getUser($user);
 
 			if ($publishedCodeSanitized === $argument['verificationCode']) {
-				$userData[AccountManager::PROPERTY_WEBSITE]['verified'] = AccountManager::VERIFIED;
+				$userData[IAccountManager::PROPERTY_WEBSITE]['verified'] = AccountManager::VERIFIED;
 			} else {
-				$userData[AccountManager::PROPERTY_WEBSITE]['verified'] = AccountManager::NOT_VERIFIED;
+				$userData[IAccountManager::PROPERTY_WEBSITE]['verified'] = AccountManager::NOT_VERIFIED;
 			}
 
 			$this->accountManager->updateUser($user, $userData);
@@ -185,7 +179,7 @@ class VerifyUserData extends Job {
 	 * @return bool true if we could check the verification code, otherwise false
 	 */
 	protected function verifyViaLookupServer(array $argument, $dataType) {
-		if(empty($this->lookupServerUrl) ||
+		if (empty($this->lookupServerUrl) ||
 			$this->config->getAppValue('files_sharing', 'lookupServerUploadEnabled', 'yes') !== 'yes' ||
 			$this->config->getSystemValue('has_internet_connection', true) === false) {
 			return false;
@@ -246,7 +240,6 @@ class VerifyUserData extends Job {
 			if (is_array($body) && isset($body['federationId']) && $body['federationId'] === $cloudId) {
 				return $body;
 			}
-
 		} catch (\Exception $e) {
 			// do nothing, we will just re-try later
 		}
@@ -296,5 +289,4 @@ class VerifyUserData extends Job {
 			$this->accountManager->updateUser($user, $accountData);
 		}
 	}
-
 }

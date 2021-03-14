@@ -2,6 +2,7 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license AGPL-3.0
@@ -16,7 +17,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -25,10 +26,8 @@
 
 namespace OCP\Files;
 
-
 /**
  * Interface IMimeTypeDetector
- * @package OCP\Files
  * @since 8.2.0
  *
  * Interface to handle mimetypes (detection and icon retrieval)
@@ -40,8 +39,16 @@ interface IMimeTypeDetector {
 	 * @param string $path
 	 * @return string
 	 * @since 8.2.0
-	 **/
+	 */
 	public function detectPath($path);
+
+	/**
+	 * detect mimetype only based on the content of file
+	 * @param string $path
+	 * @return string
+	 * @since 18.0.0
+	 */
+	public function detectContent(string $path): string;
 
 	/**
 	 * detect mimetype based on both filename and content

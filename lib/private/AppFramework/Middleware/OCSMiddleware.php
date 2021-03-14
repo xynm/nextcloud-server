@@ -2,6 +2,7 @@
 /**
  *
  *
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
@@ -18,7 +19,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +29,6 @@ use OC\AppFramework\Http;
 use OC\AppFramework\OCS\BaseResponse;
 use OC\AppFramework\OCS\V1Response;
 use OC\AppFramework\OCS\V2Response;
-use OCP\API;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\JSONResponse;
@@ -79,7 +79,7 @@ class OCSMiddleware extends Middleware {
 		if ($controller instanceof OCSController && $exception instanceof OCSException) {
 			$code = $exception->getCode();
 			if ($code === 0) {
-				$code = API::RESPOND_UNKNOWN_ERROR;
+				$code = \OCP\AppFramework\OCSController::RESPOND_UNKNOWN_ERROR;
 			}
 
 			return $this->buildNewResponse($controller, $code, $exception->getMessage());
@@ -101,15 +101,14 @@ class OCSMiddleware extends Middleware {
 		 */
 		if ($controller instanceof OCSController && !($response instanceof BaseResponse)) {
 			if ($response->getStatus() === Http::STATUS_UNAUTHORIZED ||
-			    $response->getStatus() === Http::STATUS_FORBIDDEN) {
-
+				$response->getStatus() === Http::STATUS_FORBIDDEN) {
 				$message = '';
 				if ($response instanceof JSONResponse) {
 					/** @var DataResponse $response */
 					$message = $response->getData()['message'];
 				}
 
-				return $this->buildNewResponse($controller, API::RESPOND_UNAUTHORISED, $message);
+				return $this->buildNewResponse($controller, OCSController::RESPOND_UNAUTHORISED, $message);
 			}
 		}
 
@@ -145,7 +144,7 @@ class OCSMiddleware extends Middleware {
 		$format = $this->request->getParam('format');
 
 		// if none is given try the first Accept header
-		if($format === null) {
+		if ($format === null) {
 			$headers = $this->request->getHeader('Accept');
 			$format = $controller->getResponderByHTTPHeader($headers, 'xml');
 		}

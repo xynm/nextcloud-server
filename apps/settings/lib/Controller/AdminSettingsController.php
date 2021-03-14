@@ -3,6 +3,7 @@
  * @copyright Copyright (c) 2016 Arthur Schiwon <blizzz@arthur-schiwon.de>
  *
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Robin Appelman <robin@icewind.nl>
  *
@@ -19,7 +20,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,7 +82,7 @@ class AdminSettingsController extends Controller {
 		);
 		$formatted = $this->formatSettings($settings);
 		// Do not show legacy forms for sub admins
-		if($section === 'additional' && !$isSubAdmin) {
+		if ($section === 'additional' && !$isSubAdmin) {
 			$formatted['content'] .= $this->getLegacyForms();
 		}
 		return $formatted;
@@ -100,15 +101,15 @@ class AdminSettingsController extends Controller {
 				$anchor = strtolower($sectionName);
 				$anchor = str_replace(' ', '-', $anchor);
 
-				return array(
+				return [
 					'anchor' => $anchor,
 					'section-name' => $sectionName,
 					'form' => $form
-				);
+				];
 			}
-			return array(
+			return [
 				'form' => $form
-			);
+			];
 		}, $forms);
 
 		$out = new Template('settings', 'settings/additional');
@@ -116,6 +117,4 @@ class AdminSettingsController extends Controller {
 
 		return $out->fetchPage();
 	}
-
-
 }

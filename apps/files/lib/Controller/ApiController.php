@@ -2,16 +2,23 @@
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
- * @author Bjoern Schiessle <bjoern@schiessle.org>
- * @author Christoph Wurst <christoph@owncloud.com>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
+ * @author Daniel Kesselberg <mail@danielkesselberg.de>
+ * @author Felix Nüsse <Felix.nuesse@t-online.de>
+ * @author fnuesse <felix.nuesse@t-online.de>
+ * @author fnuesse <fnuesse@techfak.uni-bielefeld.de>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author John Molakvoæ (skjnldsv) <skjnldsv@protonmail.com>
+ * @author Julius Härtl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Max Kovalenko <mxss1998@yandex.ru>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Richard Steinmetz <richard@steinmetz.cloud>
  * @author Robin Appelman <robin@icewind.nl>
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  * @author Tobias Kaminsky <tobias@kaminsky.me>
- * @author Vincent Petry <pvince81@owncloud.com>
- * @author Felix Nüsse <felix.nuesse@t-online.de>
+ * @author Vincent Petry <vincent@nextcloud.com>
+ *
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,7 +31,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License, version 3,
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ * along with this program. If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -46,7 +53,7 @@ use OCP\IPreview;
 use OCP\IRequest;
 use OCP\IUserSession;
 use OCP\Share\IManager;
-use Sabre\VObject\Property\Boolean;
+use OCP\Share\IShare;
 
 /**
  * Class ApiController
@@ -174,6 +181,7 @@ class ApiController extends Controller {
 			/** @var \OC\Files\Node\Node $shareTypes */
 			$shareTypes = $this->getShareTypes($node);
 			$file = \OCA\Files\Helper::formatFileInfo($node->getFileInfo());
+			$file['hasPreview'] = $this->previewManager->isAvailable($node);
 			$parts = explode('/', dirname($node->getPath()), 4);
 			if (isset($parts[3])) {
 				$file['path'] = '/' . $parts[3];
@@ -211,12 +219,13 @@ class ApiController extends Controller {
 		$userId = $this->userSession->getUser()->getUID();
 		$shareTypes = [];
 		$requestedShareTypes = [
-			\OCP\Share::SHARE_TYPE_USER,
-			\OCP\Share::SHARE_TYPE_GROUP,
-			\OCP\Share::SHARE_TYPE_LINK,
-			\OCP\Share::SHARE_TYPE_REMOTE,
-			\OCP\Share::SHARE_TYPE_EMAIL,
-			\OCP\Share::SHARE_TYPE_ROOM
+			IShare::TYPE_USER,
+			IShare::TYPE_GROUP,
+			IShare::TYPE_LINK,
+			IShare::TYPE_REMOTE,
+			IShare::TYPE_EMAIL,
+			IShare::TYPE_ROOM,
+			IShare::TYPE_DECK,
 		];
 		foreach ($requestedShareTypes as $requestedShareType) {
 			// one of each type is enough to find out about the types
@@ -272,6 +281,20 @@ class ApiController extends Controller {
 	}
 
 	/**
+	 * Toggle default for cropping preview images
+	 *
+	 * @NoAdminRequired
+	 *
+	 * @param bool $crop
+	 * @return Response
+	 * @throws \OCP\PreConditionNotMetException
+	 */
+	public function cropImagePreviews($crop) {
+		$this->config->setUserValue($this->userSession->getUser()->getUID(), 'files', 'crop_image_previews', (int)$crop);
+		return new Response();
+	}
+
+	/**
 	 * Toggle default for files grid view
 	 *
 	 * @NoAdminRequired
@@ -312,7 +335,7 @@ class ApiController extends Controller {
 		foreach ($navItems as $item) {
 			// check if data is valid
 			if (($show === 0 || $show === 1) && isset($item['expandedState']) && $key === $item['expandedState']) {
-				$this->config->setUserValue($this->userSession->getUser()->getUID(), 'files', $key, (int)$show);
+				$this->config->setUserValue($this->userSession->getUser()->getUID(), 'files', $key, $show);
 				return new Response();
 			}
 		}
@@ -326,7 +349,7 @@ class ApiController extends Controller {
 	 *
 	 * @NoAdminRequired
 	 *
-	 * @param string
+	 * @param string $folderpath
 	 * @return string
 	 * @throws \OCP\Files\NotFoundException
 	 */
@@ -334,5 +357,4 @@ class ApiController extends Controller {
 		$node = $this->userFolder->get($folderpath);
 		return $node->getType();
 	}
-
 }

@@ -1,11 +1,14 @@
 <?php
+
 declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2019, Roeland Jago Douma <roeland@famdouma.nl>
  * @copyright Copyright (c) 2019, Joas Schilling <coding@schilljs.com>
  *
- * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Christoph Wurst <christoph@winzerhof-wurst.at>
  * @author Joas Schilling <coding@schilljs.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
  * @license GNU AGPL version 3 or any later version
  *
@@ -20,7 +23,7 @@ declare(strict_types=1);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +59,6 @@ class Notifier implements INotifier {
 	protected $userManager;
 	/** @var IURLGenerator */
 	protected $url;
-
 
 	public function __construct(IFactory $l10nFactory,
 								IManager $shareManager,
@@ -111,7 +113,7 @@ class Notifier implements INotifier {
 		$attemptId = $notification->getObjectId();
 
 		try {
-			$share = $this->shareManager->getShareById($attemptId);
+			$share = $this->shareManager->getShareById($attemptId, $notification->getUser());
 		} catch (ShareNotFound $e) {
 			throw new AlreadyProcessedException();
 		}
@@ -148,12 +150,11 @@ class Notifier implements INotifier {
 	}
 
 	protected function parseShareInvitation(IShare $share, INotification $notification, IL10N $l): INotification {
-
 		if ($share->getShareType() === IShare::TYPE_USER) {
 			if ($share->getStatus() !== IShare::STATUS_PENDING) {
 				throw new AlreadyProcessedException();
 			}
-		} else if ($share->getShareType() === IShare::TYPE_GROUP) {
+		} elseif ($share->getShareType() === IShare::TYPE_GROUP) {
 			if ($share->getStatus() !== IShare::STATUS_PENDING) {
 				throw new AlreadyProcessedException();
 			}
@@ -175,9 +176,9 @@ class Notifier implements INotifier {
 					'share' => [
 						'type' => 'highlight',
 						'id' => $notification->getObjectId(),
-						'name' => $share->getNode()->getName(),
+						'name' => $share->getTarget(),
 					],
-					'user' =>  [
+					'user' => [
 						'type' => 'user',
 						'id' => $sharer->getUID(),
 						'name' => $sharer->getDisplayName(),
@@ -211,14 +212,14 @@ class Notifier implements INotifier {
 					'share' => [
 						'type' => 'highlight',
 						'id' => $notification->getObjectId(),
-						'name' => $share->getNode()->getName(),
+						'name' => $share->getTarget(),
 					],
 					'group' => [
 						'type' => 'user-group',
 						'id' => $group->getGID(),
 						'name' => $group->getDisplayName(),
 					],
-					'user' =>  [
+					'user' => [
 						'type' => 'user',
 						'id' => $sharer->getUID(),
 						'name' => $sharer->getDisplayName(),

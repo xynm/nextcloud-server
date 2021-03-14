@@ -11,7 +11,7 @@
 (function(OCA) {
 
 	function modelToSelection(model) {
-		var data = model.toJSON()
+		const data = model.toJSON()
 		if (!OC.isUserAdmin() && !data.canAssign) {
 			data.locked = true
 		}
@@ -25,7 +25,7 @@
 	 * Displays a file's system tags
 	 *
 	 */
-	var SystemTagsInfoView = OCA.Files.DetailFileInfoView.extend(
+	const SystemTagsInfoView = OCA.Files.DetailFileInfoView.extend(
 		/** @lends OCA.SystemTags.SystemTagsInfoView.prototype */ {
 
 			_rendered: false,
@@ -33,13 +33,16 @@
 			className: 'systemTagsInfoView',
 			name: 'systemTags',
 
+			/* required by the new files sidebar to check if the view is unique */
+			id: 'systemTagsInfoView',
+
 			/**
 			 * @type OC.SystemTags.SystemTagsInputField
 			 */
 			_inputView: null,
 
-			initialize: function(options) {
-				var self = this
+			initialize(options) {
+				const self = this
 				options = options || {}
 
 				this._inputView = new OC.SystemTags.SystemTagsInputField({
@@ -47,9 +50,9 @@
 					allowActions: true,
 					allowCreate: true,
 					isAdmin: OC.isUserAdmin(),
-					initSelection: function(element, callback) {
+					initSelection(element, callback) {
 						callback(self.selectedTagsCollection.map(modelToSelection))
-					}
+					},
 				})
 
 				this.selectedTagsCollection = new OC.SystemTags.SystemTagsMappingCollection([], { objectType: 'files' })
@@ -65,7 +68,7 @@
 			 * Event handler whenever a tag was selected
 			 * @param {Object} tag the tag to create
 			 */
-			_onSelectTag: function(tag) {
+			_onSelectTag(tag) {
 			// create a mapping entry for this tag
 				this.selectedTagsCollection.create(tag.toJSON())
 			},
@@ -76,7 +79,7 @@
 			 *
 			 * @param {string} tagId tag id
 			 */
-			_onDeselectTag: function(tagId) {
+			_onDeselectTag(tagId) {
 				this.selectedTagsCollection.get(tagId).destroy()
 			},
 
@@ -88,9 +91,9 @@
 			 *
 			 * @param {OC.Backbone.Model} changedTag tag model that has changed
 			 */
-			_onTagRenamedGlobally: function(changedTag) {
+			_onTagRenamedGlobally(changedTag) {
 			// also rename it in the selection, if applicable
-				var selectedTagMapping = this.selectedTagsCollection.get(changedTag.id)
+				const selectedTagMapping = this.selectedTagsCollection.get(changedTag.id)
 				if (selectedTagMapping) {
 					selectedTagMapping.set(changedTag.toJSON())
 				}
@@ -104,13 +107,13 @@
 			 *
 			 * @param {OC.Backbone.Model} tagId tag model that has changed
 			 */
-			_onTagDeletedGlobally: function(tagId) {
+			_onTagDeletedGlobally(tagId) {
 			// also rename it in the selection, if applicable
 				this.selectedTagsCollection.remove(tagId)
 			},
 
-			setFileInfo: function(fileInfo) {
-				var self = this
+			setFileInfo(fileInfo) {
+				const self = this
 				if (!this._rendered) {
 					this.render()
 				}
@@ -118,14 +121,15 @@
 				if (fileInfo) {
 					this.selectedTagsCollection.setObjectId(fileInfo.id)
 					this.selectedTagsCollection.fetch({
-						success: function(collection) {
+						success(collection) {
 							collection.fetched = true
 
-							var appliedTags = collection.map(modelToSelection)
+							const appliedTags = collection.map(modelToSelection)
 							self._inputView.setData(appliedTags)
-
-							self.show()
-						}
+							if (appliedTags.length > 0) {
+								self.show()
+							}
+						},
 					})
 				}
 
@@ -135,30 +139,34 @@
 			/**
 			 * Renders this details view
 			 */
-			render: function() {
+			render() {
 				this.$el.append(this._inputView.$el)
 				this._inputView.render()
 			},
 
-			isVisible: function() {
+			isVisible() {
 				return !this.$el.hasClass('hidden')
 			},
 
-			show: function() {
+			show() {
 				this.$el.removeClass('hidden')
 			},
 
-			hide: function() {
+			hide() {
 				this.$el.addClass('hidden')
 			},
 
-			openDropdown: function() {
+			toggle() {
+				this.$el.toggleClass('hidden')
+			},
+
+			openDropdown() {
 				this.$el.find('.systemTagsInputField').select2('open')
 			},
 
-			remove: function() {
+			remove() {
 				this._inputView.remove()
-			}
+			},
 		})
 
 	OCA.SystemTags.SystemTagsInfoView = SystemTagsInfoView
